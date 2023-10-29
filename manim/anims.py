@@ -90,7 +90,11 @@ class Message(Group):
         self.message = message
         self.color = RED if message == "N" else GREEN
         self.icon = Circle(
-            radius=0.05, color=self.color, fill_color=self.color, fill_opacity=1
+            radius=0.05,
+            color=self.color,
+            stroke_width=2,
+            fill_color=self.color,
+            fill_opacity=1,
         )
         self.add(self.icon)
 
@@ -152,7 +156,12 @@ class GameState(Group):
         msg_objects = []
         anims = []
         for message in messages:
+            sender = self.generals[message.sender_id]
             msg = Message(message.message)
+            if sender.is_traitor:
+                # Make the message border black if the sender is a traitor
+                # to indicate that the message is not trustworthy.
+                msg.icon.stroke_color = BLACK
             # Messages are sent from the sender's position to the receiver's buffer
             msg.move_to(self.receive_buffers[message.sender_id])
             msg_objects.append(msg)
