@@ -34,7 +34,7 @@ class Player(General):
         super().__init__()
         self.opinion = opinion
         self.is_traitor = False
-        self.icon = Rectangle(width=1, height=1)
+        self.icon = Circle(radius=0.5)
         self.icon.set_stroke(color=self.get_color(), opacity=1)
         self.opinion_text = Tex(opinion, color=self.get_color())
         self.add(self.opinion_text)
@@ -58,9 +58,7 @@ class Traitor(General):
         super().__init__()
         self.is_traitor = True
         color = "#333"
-        self.icon = Rectangle(
-            width=1, height=1, color=color, fill_color=color, fill_opacity=1
-        )
+        self.icon = Circle(radius=0.5, color=color, fill_color=color, fill_opacity=1)
         self.add(self.icon)
 
     def change_opinion(self, opinion: str):
