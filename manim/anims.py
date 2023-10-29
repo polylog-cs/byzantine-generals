@@ -35,8 +35,8 @@ class Player(General):
         self.opinion = opinion
         self.is_traitor = False
         self.icon = Circle(radius=0.5)
-        self.icon.set_stroke(color=self.get_color(), opacity=1)
-        self.opinion_text = Tex(opinion, color=self.get_color())
+        self.opinion_text = Tex(opinion)
+        self.change_opinion(opinion)
         self.add(self.opinion_text)
         self.add(self.icon)
 
@@ -154,7 +154,9 @@ class GameState(Group):
         in the same layout as the generals are positioned in the circle.
         """
         msg_objects = []
+        anims_msg_creation = []
         anims = []
+        to_remove = []
         for message in messages:
             sender = self.generals[message.sender_id]
             msg = Message(message.message)
@@ -164,6 +166,15 @@ class GameState(Group):
                 msg.icon.stroke_color = BLACK
             # Messages are sent from the sender's position to the receiver's buffer
             msg.move_to(self.receive_buffers[message.sender_id])
+
+            # Make the message icon appear from the sender's icon
+            sender_icon_copy = sender.icon.copy()
+            sender_icon_copy.fill_color = sender_icon_copy.stroke_color
+            sender_msg_copy = msg.icon.copy()
+            to_remove.append(sender_icon_copy)
+            to_remove.append(sender_msg_copy)
+            anims_msg_creation.append(sender_icon_copy.animate.become(sender_msg_copy))
+
             msg_objects.append(msg)
             # Animate the message moving from the sender to the receiver.
             if circular_receive:
@@ -178,6 +189,8 @@ class GameState(Group):
                     message.receiver_id
                 ].get_center()
             anims.append(msg.animate.move_to(receive_location))
+        scene.play(*anims_msg_creation)
+        scene.remove(*to_remove)
         scene.add(*msg_objects)
         scene.play(*anims)
         return msg_objects
