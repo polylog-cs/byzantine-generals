@@ -7,7 +7,7 @@ from icecream import ic
 from utils.util_general import *
 from collections import namedtuple
 
-from typing import List
+from typing import Any, List
 
 
 class General(Group):
@@ -30,28 +30,54 @@ class General(Group):
 
 
 class Player(General):
-    def __init__(self, opinion: str):
+    def __init__(self, opinion: str = ""):
         super().__init__()
         self.opinion = opinion
         self.is_traitor = False
-        self.icon = Rectangle(width=1, height=1, color=GREEN)
-        self.opinion_text = Tex(opinion, color=GREEN)
-        self.add(self.icon)
+        self.icon = Rectangle(width=1, height=1)
+        self.icon.set_stroke(color=self.get_color(), opacity=1)
+        self.opinion_text = Tex(opinion, color=self.get_color())
         self.add(self.opinion_text)
+        self.add(self.icon)
+
+    def get_color(self):
+        return GREEN if self.opinion == "Y" else RED if self.opinion == "N" else "#333"
 
     def change_opinion(self, opinion: str):
         self.opinion = opinion
-        new_opinion_text = Tex(opinion, color=GREEN)
-        new_opinion_text.move_to(self.opinion_text)
+        color = self.get_color()
+
+        new_opinion_text = Tex(opinion, color=color)
+        new_opinion_text.move_to(self)
         self.opinion_text.become(new_opinion_text)
+        self.icon.set_stroke(color=color, opacity=1)
 
 
 class Traitor(General):
     def __init__(self):
         super().__init__()
         self.is_traitor = True
-        self.icon = Rectangle(width=1, height=1, color=RED)
+        color = "#333"
+        self.icon = Rectangle(
+            width=1, height=1, color=color, fill_color=color, fill_opacity=1
+        )
         self.add(self.icon)
+
+
+class CyclicOpinionTraitor(Traitor):
+    def __init__(self, opinions: str = ""):
+        super().__init__()
+        self.opinions = opinions
+        self.opinion_idx = 0
+
+    @property
+    def opinion(self):
+        """
+        Traitors opinion is cyclic and changes every time it is accessed.
+        """
+        ret = self.opinions[self.opinion_idx]
+        self.opinion_idx = (self.opinion_idx + 1) % len(self.opinions)
+        return ret
 
 
 MsgType = namedtuple("MsgType", ["sender_id", "receiver_id", "message"])
@@ -61,9 +87,11 @@ class Message(Group):
     def __init__(self, message: str):
         super().__init__()
         self.message = message
-        self.box = Rectangle(width=1, height=1, color=ORANGE).scale(0.5)
-        self.message_text = Tex(message, color=ORANGE)
-        self.add(self.box, self.message_text)
+        self.color = RED if message == "N" else GREEN
+        self.icon = Circle(
+            radius=0.2, color=self.color, fill_color=self.color, fill_opacity=1
+        )
+        self.add(self.icon)
 
 
 class GameState(Group):
@@ -91,41 +119,75 @@ class GameState(Group):
                 for i in range(len(msg_objects))
             ]
         )
-        scene.remove(*msg_objects)
+        return msg_objects
+
+    def broadcast_opinion(self, scene: Scene, general_ids: int):
+        messages = []
+        for general_id in general_ids:
+            for i in range(len(self.generals)):
+                if i != general_id:
+                    messages.append(
+                        MsgType(general_id, i, self.generals[general_id].opinion)
+                    )
+        return self.send_messages(scene, messages)
+
+    def send_opinions_to(self, scene: Scene, general_id: int):
+        messages = []
+        for i in range(len(self.generals)):
+            if i != general_id:
+                messages.append(MsgType(i, general_id, self.generals[i].opinion))
+        return self.send_messages(scene, messages)
 
 
 class GameScene(Scene):
     def construct(self):
+        opinions = ["Y", "N", None, "N", "Y", None, "N", "Y", "N", "Y", "N", "Y"]
         game = GameState(
             [
-                Player("Y"),
-                Player("N"),
-                Traitor(),
-                Player("N"),
-                Player("Y"),
-                Traitor(),
-                Player("N"),
-                Player("Y"),
-                Player("N"),
-                Player("Y"),
-                Player("N"),
-                Player("Y"),
+                Player(),
+                Player(),
+                CyclicOpinionTraitor("YNNY"),
+                Player(),
+                Player(),
+                CyclicOpinionTraitor("NNYY"),
+                Player(),
+                Player(),
+                Player(),
+                Player(),
+                Player(),
+                Player(),
             ]
         )
         game.shift(2 * LEFT)
         self.add(game)
 
         self.wait(0.5)
-        self.play(game.generals[3].animate.change_opinion("Y"))
+        for i in range(len(game.generals)):
+            if opinions[i] is not None:
+                self.play(
+                    game.generals[i].animate.change_opinion(opinions[i]), run_time=0.2
+                )
+        self.play(game.generals[3].animate.change_opinion("N"))
         self.wait(0.5)
 
-        game.send_messages(
-            self, [MsgType(3, 4, "Y"), MsgType(3, 5, "Y"), MsgType(3, 6, "Y")]
+        msgs = game.send_messages(
+            self, [MsgType(3, 5, "Y"), MsgType(7, 11, "N"), MsgType(9, 2, "N")]
         )
+        self.remove(*msgs)
+
+        self.wait(0.5)
+
+        msgs = game.broadcast_opinion(self, [0, 3])
+        self.remove(*msgs)
 
         self.wait(1)
 
         game.generals[2].make_leader(self)
+
+        self.wait(1)
+
+        msgs = game.send_opinions_to(self, 2)
+        self.remove(*msgs)
 
         self.wait(1)
 
