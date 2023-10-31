@@ -205,10 +205,12 @@ class GameState(Group):
                     )
         return self.send_messages(scene, messages)
 
-    def send_opinions_to(self, scene: Scene, general_id: int):
+    def send_opinions_to(
+        self, scene: Scene, general_id: int, send_to_self: bool = False
+    ):
         messages = []
         for i in range(len(self.generals)):
-            if i != general_id:
+            if send_to_self or i != general_id:
                 messages.append(MsgType(i, general_id, self.generals[i].opinion))
         return self.send_messages(scene, messages, circular_receive=True)
 
@@ -230,12 +232,12 @@ class GameState(Group):
         scene.play(*anims)
         scene.remove(*opinions, *new_icons)
 
-    def leader_algorithm(self, scene: Scene, leader_id: int):
+    def leader_algorithm(self, scene: Scene, leader_id: int, send_to_self: bool = True):
         self.generals[leader_id].make_leader(scene)
 
         scene.wait(0.5)
 
-        msgs = self.send_opinions_to(scene, leader_id)
+        msgs = self.send_opinions_to(scene, leader_id, send_to_self)
 
         scene.wait(0.5)
 
