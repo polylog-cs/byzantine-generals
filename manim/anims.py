@@ -238,61 +238,72 @@ class GameState(Group):
         msgs = self.send_opinions_to(scene, leader_id)
 
         scene.wait(0.5)
-        receive_buffer = self.receive_buffers[leader_id]
-        thinking_buffer = self.thinking_buffers[leader_id]
 
-        # Move all the messages to the thinking buffer
-        receive_to_thinking = thinking_buffer.get_center() - receive_buffer.get_center()
-        scene.play(*[msg.animate.shift(receive_to_thinking) for msg in msgs])
+        if self.generals[leader_id].is_traitor:
+            # If the leader is a trator, just discard the received messages
+            scene.play(
+                *[FadeOut(msg) for msg in msgs],
+            )
 
-        # Reorganize the messages by the opinion they carry
-        anims = []
-        y_cnt, n_cnt = 0, 0
-        for msg in msgs:
-            if msg.message == "Y":
-                row = y_cnt % 4
-                col = y_cnt // 4
-                pos = (
-                    thinking_buffer.get_center()
-                    + 0.45 * LEFT
-                    + 0.3 * UP
-                    + row * 0.15 * DOWN
-                    + col * 0.15 * RIGHT
-                )
-                y_cnt += 1
-            elif msg.message == "N":
-                row = n_cnt % 4
-                col = n_cnt // 4
-                pos = (
-                    thinking_buffer.get_center()
-                    + 0.45 * RIGHT
-                    + 0.3 * UP
-                    + row * 0.15 * DOWN
-                    + col * 0.15 * LEFT
-                )
-                n_cnt += 1
-            else:
-                raise Exception("Invalid message")
-            anims.append(msg.animate.move_to(pos))
-        scene.play(*anims)
+        else:
+            receive_buffer = self.receive_buffers[leader_id]
+            thinking_buffer = self.thinking_buffers[leader_id]
 
-        win = "Y" if y_cnt > n_cnt else "N"
+            # Move all the messages to the thinking buffer
+            receive_to_thinking = (
+                thinking_buffer.get_center() - receive_buffer.get_center()
+            )
+            scene.play(*[msg.animate.shift(receive_to_thinking) for msg in msgs])
 
-        inequality_symbol = Tex("$>$" if win == "Y" else "$\le$", color=BLACK)
-        inequality_symbol.move_to(thinking_buffer.get_center())
-        scene.play(FadeIn(inequality_symbol))
+            # Reorganize the messages by the opinion they carry
+            anims = []
+            y_cnt, n_cnt = 0, 0
+            for msg in msgs:
+                if msg.message == "Y":
+                    row = y_cnt % 4
+                    col = y_cnt // 4
+                    pos = (
+                        thinking_buffer.get_center()
+                        + 0.45 * LEFT
+                        + 0.3 * UP
+                        + row * 0.15 * DOWN
+                        + col * 0.15 * RIGHT
+                    )
+                    y_cnt += 1
+                elif msg.message == "N":
+                    row = n_cnt % 4
+                    col = n_cnt // 4
+                    pos = (
+                        thinking_buffer.get_center()
+                        + 0.45 * RIGHT
+                        + 0.3 * UP
+                        + row * 0.15 * DOWN
+                        + col * 0.15 * LEFT
+                    )
+                    n_cnt += 1
+                else:
+                    raise Exception("Invalid message")
+                anims.append(msg.animate.move_to(pos))
+            scene.play(*anims)
 
-        new_opinion = Message(win).scale(4)
-        new_opinion.move_to(inequality_symbol)
+            win = "Y" if y_cnt > n_cnt else "N"
 
-        scene.play(
-            *[msg.animate.move_to(new_opinion) for msg in msgs],
-            inequality_symbol.animate.become(new_opinion.icon),
-        )
-        scene.remove(inequality_symbol, *msgs)
+            inequality_symbol = Tex("$>$" if win == "Y" else "$\le$", color=BLACK)
+            inequality_symbol.move_to(thinking_buffer.get_center())
+            scene.play(FadeIn(inequality_symbol))
 
-        self.update_general_opinions(scene, [leader_id], [new_opinion])
+            new_opinion = Message(win).scale(4)
+            new_opinion.move_to(inequality_symbol)
 
+            scene.play(
+                *[msg.animate.move_to(new_opinion) for msg in msgs],
+                inequality_symbol.animate.become(new_opinion.icon),
+            )
+            scene.remove(inequality_symbol, *msgs)
+
+            self.update_general_opinions(scene, [leader_id], [new_opinion])
+
+        # Whether it's a trator or not, the leader broadcasts the decision
         msgs = self.broadcast_opinion(scene, [leader_id])
 
         self.update_general_opinions(
@@ -353,6 +364,40 @@ class LeaderWithTraitors(Scene):
                 )
 
         game.leader_algorithm(self, 1)
+
+        self.wait(1)
+
+
+class LeaderIsTraitor(Scene):
+    def construct(self):
+        opinions = ["Y", "N", None, "N", "Y", None, "N", "Y", "N", "Y", "N", "Y"]
+        game = GameState(
+            [
+                Player(),
+                Player(),
+                CyclicOpinionTraitor("YNNY"),
+                Player(),
+                Player(),
+                CyclicOpinionTraitor("NNYY"),
+                Player(),
+                Player(),
+                Player(),
+                Player(),
+                Player(),
+                Player(),
+            ]
+        )
+        game.shift(2 * LEFT)
+        self.add(game)
+
+        self.wait(0.5)
+        for i in range(len(game.generals)):
+            if opinions[i] is not None:
+                self.play(
+                    game.generals[i].animate.change_opinion(opinions[i]), run_time=0.2
+                )
+
+        game.leader_algorithm(self, 2)
 
         self.wait(1)
 
