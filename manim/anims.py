@@ -233,19 +233,17 @@ class GameState(Group):
     def leader_algorithm(self, scene: Scene, leader_id: int):
         self.generals[leader_id].make_leader(scene)
 
-        scene.wait(1)
+        scene.wait(0.5)
 
         msgs = self.send_opinions_to(scene, leader_id)
 
-        scene.wait(1)
+        scene.wait(0.5)
         receive_buffer = self.receive_buffers[leader_id]
         thinking_buffer = self.thinking_buffers[leader_id]
 
         # Move all the messages to the thinking buffer
         receive_to_thinking = thinking_buffer.get_center() - receive_buffer.get_center()
         scene.play(*[msg.animate.shift(receive_to_thinking) for msg in msgs])
-
-        scene.wait(1)
 
         # Reorganize the messages by the opinion they carry
         anims = []
@@ -306,7 +304,26 @@ class GameState(Group):
         self.generals[leader_id].remove_leader(scene)
 
 
-class GameScene(Scene):
+class LeaderNoTraitors(Scene):
+    def construct(self):
+        opinions = ["Y", "N", "Y", "N", "Y", "N", "N", "Y", "N", "Y", "N", "Y"]
+        game = GameState([Player() for i in range(len(opinions))])
+        game.shift(2 * LEFT)
+        self.add(game)
+
+        self.wait(0.5)
+        for i in range(len(game.generals)):
+            if opinions[i] is not None:
+                self.play(
+                    game.generals[i].animate.change_opinion(opinions[i]), run_time=0.2
+                )
+
+        game.leader_algorithm(self, 1)
+
+        self.wait(1)
+
+
+class LeaderWithTraitors(Scene):
     def construct(self):
         opinions = ["Y", "N", None, "N", "Y", None, "N", "Y", "N", "Y", "N", "Y"]
         game = GameState(
@@ -334,7 +351,6 @@ class GameScene(Scene):
                 self.play(
                     game.generals[i].animate.change_opinion(opinions[i]), run_time=0.2
                 )
-        self.play(game.generals[3].animate.change_opinion("N"))
 
         game.leader_algorithm(self, 1)
 
