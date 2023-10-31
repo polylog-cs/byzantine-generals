@@ -260,8 +260,8 @@ class GameState(Group):
             y_cnt, n_cnt = 0, 0
             for msg in msgs:
                 if msg.message == "Y":
-                    row = y_cnt % 4
-                    col = y_cnt // 4
+                    row = y_cnt // 2
+                    col = y_cnt % 2
                     pos = (
                         thinking_buffer.get_center()
                         + 0.45 * LEFT
@@ -271,8 +271,8 @@ class GameState(Group):
                     )
                     y_cnt += 1
                 elif msg.message == "N":
-                    row = n_cnt % 4
-                    col = n_cnt // 4
+                    row = n_cnt // 2
+                    col = n_cnt % 2
                     pos = (
                         thinking_buffer.get_center()
                         + 0.45 * RIGHT
