@@ -101,10 +101,15 @@ class General(Group):
         self.add(buffer)
 
     def move_receive_buffer_to_thinking_buffer(self):
+        # Traitors don't move their receive buffer to the thinking buffer,
+        # they just discard the messages.
+        if self.is_traitor:
+            return [FadeOut(msg) for msg in self.receive_buffer.messages]
+
         receive_to_thinking = (
             self.thinking_buffer.get_center() - self.receive_buffer.get_center()
         )
-        self.thinking_buffer.messages = self.receive_buffer.messages
+        self.thinking_buffer.messages += self.receive_buffer.messages
         self.receive_buffer.messages = []
         return [
             msg.animate.shift(receive_to_thinking)
@@ -266,15 +271,17 @@ class GameState(Group):
         scene.play(*anims)
         return msg_objects
 
-    def broadcast_opinion(self, scene: Scene, general_ids: int):
+    def broadcast_opinion(
+        self, scene: Scene, general_ids: int, send_to_self=False, circular_receive=False
+    ):
         messages = []
         for general_id in general_ids:
             for i in range(len(self.generals)):
-                if i != general_id:
+                if i != general_id or send_to_self:
                     messages.append(
                         MsgType(general_id, i, self.generals[general_id].opinion)
                     )
-        return self.send_messages(scene, messages)
+        return self.send_messages(scene, messages, circular_receive=circular_receive)
 
     def send_opinions_to(
         self, scene: Scene, general_id: int, send_to_self: bool = False
@@ -312,16 +319,8 @@ class GameState(Group):
 
         scene.wait(0.5)
 
-        if self.generals[leader_id].is_traitor:
-            # If the leader is a trator, just discard the received messages
-            scene.play(
-                *[FadeOut(msg) for msg in msgs],
-            )
-
-        else:
-            scene.play(
-                *self.generals[leader_id].move_receive_buffer_to_thinking_buffer()
-            )
+        scene.play(*self.generals[leader_id].move_receive_buffer_to_thinking_buffer())
+        if not self.generals[leader_id].is_traitor:
             new_opinion = self.generals[leader_id].update_opinion_to_majority(scene)
             self.update_general_opinions(scene, [leader_id], [new_opinion])
 
@@ -339,17 +338,61 @@ class GameState(Group):
     def majority_algorithm(self, scene: Scene, send_to_self: bool = True):
         for i in range(len(self.generals)):
             self.send_opinions_to(scene, i, send_to_self)
-            if self.generals[i].is_traitor:
-                scene.play(
-                    *[FadeOut(msg) for msg in self.generals[i].receive_buffer.messages],
-                )
-            else:
-                scene.play(*self.generals[i].move_receive_buffer_to_thinking_buffer())
+            scene.play(*self.generals[i].move_receive_buffer_to_thinking_buffer())
         for i in range(len(self.generals)):
             if self.generals[i].is_traitor:
                 continue
             new_opinion = self.generals[i].update_opinion_to_majority(scene)
             self.update_general_opinions(scene, [i], [new_opinion])
+
+    def move_all_receive_buffers_to_thinking_buffers(self, scene: Scene):
+        anims = []
+        for general in self.generals:
+            anims.extend(general.move_receive_buffer_to_thinking_buffer())
+        scene.play(*anims)
+
+    def full_algorithm(
+        self, scene: Scene, leader_ids: List[int], send_to_self: bool = True
+    ):
+        # v ← your initial opinion
+        # For i in [1,2,3]:
+        #   Send v to everybody
+        #   Compute majority opinion, receive leader’s opinion
+        #   if ??????
+        #     v ←majority opinion
+        #   else
+        #     v ← leader’s opinion
+        # output v
+
+        for leader_id in leader_ids:
+            self.generals[leader_id].make_leader(scene)
+            for i in range(len(self.generals)):
+                self.broadcast_opinion(
+                    scene, [i], send_to_self=send_to_self, circular_receive=True
+                )
+
+            # self.broadcast_opinion(
+            #    scene, range(len(self.generals)), circular_receive=True
+            # )
+
+            self.move_all_receive_buffers_to_thinking_buffers(scene)
+
+            if not self.generals[leader_id].is_traitor:
+                new_opinion = self.generals[leader_id].update_opinion_to_majority(scene)
+                self.update_general_opinions(scene, [leader_id], [new_opinion])
+
+            # Whether it's a trator or not, the leader broadcasts the decision
+            self.broadcast_opinion(scene, [leader_id])
+
+            for i in range(len(self.generals)):
+                if not self.generals[i].is_traitor:
+                    msgs = self.generals[i].thinking_buffer.sort_messages()
+                    if not msgs:
+                        print("No messages, general", i)
+                    else:
+                        scene.play(*msgs)
+
+            self.generals[leader_id].remove_leader(scene)
 
 
 class LeaderNoTraitors(Scene):
@@ -488,6 +531,40 @@ class MajorityWithTraitors(Scene):
                 )
 
         game.majority_algorithm(self)
+
+        self.wait(1)
+
+
+class FullWithTraitors(Scene):
+    def construct(self):
+        opinions = ["Y", "N", None, "N", "Y", None, "N", "Y", "N", "Y", "N", "Y"]
+        game = GameState(
+            [
+                Player(),
+                Player(),
+                CyclicOpinionTraitor("YNNY"),
+                Player(),
+                Player(),
+                CyclicOpinionTraitor("NNYY"),
+                Player(),
+                Player(),
+                Player(),
+                Player(),
+                Player(),
+                Player(),
+            ]
+        )
+        game.shift(2 * LEFT)
+        self.add(game)
+
+        self.wait(0.5)
+        for i in range(len(game.generals)):
+            if opinions[i] is not None:
+                self.play(
+                    game.generals[i].animate.change_opinion(opinions[i]), run_time=0.2
+                )
+
+        game.full_algorithm(self, leader_ids=[2, 4, 5], send_to_self=True)
 
         self.wait(1)
 
