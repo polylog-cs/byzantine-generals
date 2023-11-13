@@ -11,6 +11,16 @@ from typing import Any, List
 
 MsgType = namedtuple("MsgType", ["sender_id", "receiver_id", "message"])
 
+MESSAGE_RADIUS = 0.05
+GENERAL_RADIUS = 0.5
+
+CROWN_SVG = "img/crown.svg"
+CROWN_OFFSET = 1.1  # How much is the crown shifted up from the icon
+
+MESSAGE_BUFFER_COLUMNS = 2
+MESSAGE_BUFFER_HORIZONTAL_OFFSET = 0.45
+MESSAGE_BUFFER_VERTICAL_OFFSET = 0.3
+
 
 class Message(Group):
     def __init__(self, message: str):
@@ -18,7 +28,7 @@ class Message(Group):
         self.message = message
         self.color = RED if message == "N" else GREEN
         self.icon = Circle(
-            radius=0.05,
+            radius=MESSAGE_RADIUS,
             color=self.color,
             stroke_width=2,
             fill_color=self.color,
@@ -27,11 +37,22 @@ class Message(Group):
         self.add(self.icon)
 
 
-class MessageBuffer(Group):
-    """
-    Each general has a message buffer, which is a list of messages.
-    """
+class Crown(SVGMobject):
+    def __init__(self, parent: Mobject):
+        super().__init__(CROWN_SVG)
+        self.scale(parent.width / self.width)
+        self.move_to(parent)
+        self.shift(UP * (parent.height / 2 + self.height / 2) * CROWN_OFFSET)
 
+
+class LeaderMessage(Message):
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.crown = Crown(self)
+        self.add(self.crown)
+
+
+class MessageBuffer(Group):
     def __init__(self):
         super().__init__()
         self.messages = []
@@ -41,31 +62,52 @@ class MessageBuffer(Group):
     def add_msg(self, msg: Message):
         self.messages.append(msg)
 
+    def count_regular_opinions(self):
+        return len(
+            [
+                msg
+                for msg in self.messages
+                if msg.message == "Y" and not isinstance(msg, LeaderMessage)
+            ]
+        ), len(
+            [
+                msg
+                for msg in self.messages
+                if msg.message == "N" and not isinstance(msg, LeaderMessage)
+            ]
+        )
+
     def sort_messages(self):
         # Reorganize the messages by the opinion they carry
         anims = []
         y_cnt, n_cnt = 0, 0
+        message_spacing = 3 * MESSAGE_RADIUS  # 2 * radius + spacing
         for msg in self.messages:
+            if isinstance(msg, LeaderMessage):
+                # Leader messages are not sorted, they are just shifted up
+                # to make space for the inequality symbol.
+                anims.append(msg.animate.shift(UP * MESSAGE_BUFFER_VERTICAL_OFFSET))
+                continue
             if msg.message == "Y":
-                row = y_cnt // 2
-                col = y_cnt % 2
+                row = y_cnt // MESSAGE_BUFFER_COLUMNS
+                col = y_cnt % MESSAGE_BUFFER_COLUMNS
                 pos = (
                     self.get_center()
-                    + 0.45 * LEFT
-                    + 0.3 * UP
-                    + row * 0.15 * DOWN
-                    + col * 0.15 * RIGHT
+                    + LEFT * MESSAGE_BUFFER_HORIZONTAL_OFFSET
+                    + UP * MESSAGE_BUFFER_VERTICAL_OFFSET
+                    + row * message_spacing * DOWN
+                    + col * message_spacing * RIGHT
                 )
                 y_cnt += 1
             elif msg.message == "N":
-                row = n_cnt // 2
-                col = n_cnt % 2
+                row = n_cnt // MESSAGE_BUFFER_COLUMNS
+                col = n_cnt % MESSAGE_BUFFER_COLUMNS
                 pos = (
                     self.get_center()
-                    + 0.45 * RIGHT
-                    + 0.3 * UP
-                    + row * 0.15 * DOWN
-                    + col * 0.15 * LEFT
+                    + RIGHT * MESSAGE_BUFFER_HORIZONTAL_OFFSET
+                    + UP * MESSAGE_BUFFER_VERTICAL_OFFSET
+                    + row * message_spacing * DOWN
+                    + col * message_spacing * LEFT
                 )
                 n_cnt += 1
             else:
@@ -82,9 +124,7 @@ class General(Group):
     def make_leader(self, scene: Scene):
         assert not self.is_leader
         self.is_leader = True
-        self.crown = SVGMobject("img/crown.svg").scale(0.25)
-        self.crown.move_to(self)
-        self.crown.shift(0.8 * UP)
+        self.crown = Crown(self.icon)
         scene.play(FadeIn(self.crown))
 
     def remove_leader(self, scene: Scene):
@@ -109,26 +149,27 @@ class General(Group):
         receive_to_thinking = (
             self.thinking_buffer.get_center() - self.receive_buffer.get_center()
         )
+        anims = [
+            msg.animate.shift(receive_to_thinking)
+            for msg in self.receive_buffer.messages
+        ]
         self.thinking_buffer.messages += self.receive_buffer.messages
         self.receive_buffer.messages = []
-        return [
-            msg.animate.shift(receive_to_thinking)
-            for msg in self.thinking_buffer.messages
-        ]
+        return anims
 
     def update_opinion_to_majority(self, scene: Scene):
         thinking_buffer = self.thinking_buffer
         scene.play(*thinking_buffer.sort_messages())
         msgs = thinking_buffer.messages
 
-        opinions = [msg.message for msg in msgs]
-        win = "Y" if opinions.count("Y") > opinions.count("N") else "N"
+        y_cnt, n_cnt = thinking_buffer.count_regular_opinions()
+        win = "Y" if y_cnt > n_cnt else "N"
 
         inequality_symbol = Tex("$>$" if win == "Y" else "$\le$", color=BLACK)
         inequality_symbol.move_to(thinking_buffer.get_center())
         scene.play(FadeIn(inequality_symbol))
 
-        new_opinion = Message(win).scale(4)
+        new_opinion = Message(win).scale(4)  # Make the new opinion 4x bigger
         new_opinion.move_to(inequality_symbol)
 
         scene.play(
@@ -145,7 +186,7 @@ class Player(General):
         super().__init__()
         self.opinion = opinion
         self.is_traitor = False
-        self.icon = Circle(radius=0.5)
+        self.icon = Circle(radius=GENERAL_RADIUS)
         self.opinion_text = Tex(opinion)
         self.change_opinion(opinion)
         self.add(self.opinion_text)
@@ -169,7 +210,9 @@ class Traitor(General):
         super().__init__()
         self.is_traitor = True
         color = "#333"
-        self.icon = Circle(radius=0.5, color=color, fill_color=color, fill_opacity=1)
+        self.icon = Circle(
+            radius=GENERAL_RADIUS, color=color, fill_color=color, fill_opacity=1
+        )
         self.add(self.icon)
 
     def change_opinion(self, opinion: str):
@@ -236,7 +279,7 @@ class GameState(Group):
         for message in messages:
             sender = self.generals[message.sender_id]
             receiver = self.generals[message.receiver_id]
-            msg = Message(message.message)
+            msg = message.message
             if sender.is_traitor:
                 # Make the message border black if the sender is a traitor
                 # to indicate that the message is not trustworthy.
@@ -272,14 +315,21 @@ class GameState(Group):
         return msg_objects
 
     def broadcast_opinion(
-        self, scene: Scene, general_ids: int, send_to_self=False, circular_receive=False
+        self,
+        scene: Scene,
+        general_ids: int,
+        send_to_self=False,
+        circular_receive=False,
+        msg_class=Message,
     ):
         messages = []
         for general_id in general_ids:
             for i in range(len(self.generals)):
                 if i != general_id or send_to_self:
                     messages.append(
-                        MsgType(general_id, i, self.generals[general_id].opinion)
+                        MsgType(
+                            general_id, i, msg_class(self.generals[general_id].opinion)
+                        )
                     )
         return self.send_messages(scene, messages, circular_receive=circular_receive)
 
@@ -289,7 +339,9 @@ class GameState(Group):
         messages = []
         for i in range(len(self.generals)):
             if send_to_self or i != general_id:
-                messages.append(MsgType(i, general_id, self.generals[i].opinion))
+                messages.append(
+                    MsgType(i, general_id, Message(self.generals[i].opinion))
+                )
         return self.send_messages(scene, messages, circular_receive=True)
 
     def update_general_opinions(
@@ -325,7 +377,7 @@ class GameState(Group):
             self.update_general_opinions(scene, [leader_id], [new_opinion])
 
         # Whether it's a trator or not, the leader broadcasts the decision
-        msgs = self.broadcast_opinion(scene, [leader_id])
+        msgs = self.broadcast_opinion(scene, [leader_id], msg_class=LeaderMessage)
 
         self.update_general_opinions(
             scene,
@@ -382,7 +434,9 @@ class GameState(Group):
                 self.update_general_opinions(scene, [leader_id], [new_opinion])
 
             # Whether it's a trator or not, the leader broadcasts the decision
-            self.broadcast_opinion(scene, [leader_id])
+            self.broadcast_opinion(scene, [leader_id], msg_class=LeaderMessage)
+
+            self.move_all_receive_buffers_to_thinking_buffers(scene)
 
             for i in range(len(self.generals)):
                 if not self.generals[i].is_traitor:
