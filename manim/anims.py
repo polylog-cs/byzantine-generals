@@ -11,15 +11,23 @@ from typing import Any, List
 
 MsgType = namedtuple("MsgType", ["sender_id", "receiver_id", "message"])
 
-MESSAGE_RADIUS = 0.05
 GENERAL_RADIUS = 0.5
+
+GENERAL_CIRCLE_SIZE = 2.2
+GENERAL_THINKING_BUFFER_RADIUS = 3.5
+GENERAL_RECEIVE_BUFFER_RADIUS = 1.3
 
 CROWN_SVG = "img/crown.svg"
 CROWN_OFFSET = 1.1  # How much is the crown shifted up from the icon
 
+MESSAGE_RADIUS = 0.05
+
 MESSAGE_BUFFER_COLUMNS = 2
 MESSAGE_BUFFER_HORIZONTAL_OFFSET = 0.45
 MESSAGE_BUFFER_VERTICAL_OFFSET = 0.3
+
+# Messages are received in a circle with this radius
+RECEIVE_BUFFER_CIRCULAR_RADIUS = 0.23
 
 
 class Message(Group):
@@ -63,19 +71,10 @@ class MessageBuffer(Group):
         self.messages.append(msg)
 
     def count_regular_opinions(self):
-        return len(
-            [
-                msg
-                for msg in self.messages
-                if msg.message == "Y" and not isinstance(msg, LeaderMessage)
-            ]
-        ), len(
-            [
-                msg
-                for msg in self.messages
-                if msg.message == "N" and not isinstance(msg, LeaderMessage)
-            ]
-        )
+        opinions = [
+            msg.message for msg in self.messages if not isinstance(msg, LeaderMessage)
+        ]
+        return opinions.count("Y"), opinions.count("N")
 
     def sort_messages(self):
         # Reorganize the messages by the opinion they carry
@@ -144,7 +143,9 @@ class General(Group):
         # Traitors don't move their receive buffer to the thinking buffer,
         # they just discard the messages.
         if self.is_traitor:
-            return [FadeOut(msg) for msg in self.receive_buffer.messages]
+            anims = [FadeOut(msg) for msg in self.receive_buffer.messages]
+            self.receive_buffer.messages = []
+            return anims
 
         receive_to_thinking = (
             self.thinking_buffer.get_center() - self.receive_buffer.get_center()
@@ -180,6 +181,67 @@ class General(Group):
         scene.remove(inequality_symbol, *msgs)
         return new_opinion
 
+    def update_opinion_to_supermajority_or_leader(self, scene: Scene):
+        thinking_buffer = self.thinking_buffer
+        scene.play(*thinking_buffer.sort_messages())
+        msgs = thinking_buffer.messages
+
+        leader_msg = list(filter(lambda msg: isinstance(msg, LeaderMessage), msgs))
+        assert len(leader_msg) == 1
+        leader_msg = leader_msg[0]
+
+        y_msgs = filter(
+            lambda msg: not isinstance(msg, LeaderMessage) and msg.message == "Y", msgs
+        )
+        n_msgs = filter(
+            lambda msg: not isinstance(msg, LeaderMessage) and msg.message == "N", msgs
+        )
+
+        y_cnt, n_cnt = thinking_buffer.count_regular_opinions()
+        if n_cnt <= 2:
+            win = "Y"
+            tex = "$\gg$"  # Supermajority
+        elif y_cnt <= 2:
+            win = "N"
+            tex = "$\ll$"  # Supermajority
+        else:
+            win = leader_msg.message
+            tex = "$\\approx$"
+
+        inequality_symbol = Tex(tex, color=BLACK).scale(0.8)
+        inequality_symbol.move_to(thinking_buffer.get_center())
+        scene.play(FadeIn(inequality_symbol))
+
+        new_opinion = Message(win).scale(4)  # Make the new opinion 4x bigger
+        new_opinion.move_to(inequality_symbol)
+
+        if n_cnt <= 2:
+            anims = (
+                [msg.animate.move_to(new_opinion) for msg in y_msgs]
+                + [FadeOut(msg) for msg in n_msgs]
+                + [FadeOut(leader_msg)]
+            )
+        elif y_cnt <= 2:
+            anims = (
+                [msg.animate.move_to(new_opinion) for msg in n_msgs]
+                + [FadeOut(msg) for msg in y_msgs]
+                + [FadeOut(leader_msg)]
+            )
+        else:
+            anims = (
+                [leader_msg.animate.move_to(new_opinion)]
+                + [FadeOut(msg) for msg in y_msgs]
+                + [FadeOut(msg) for msg in n_msgs]
+            )
+
+        scene.play(
+            *anims,
+            inequality_symbol.animate.become(new_opinion.icon),
+        )
+        self.thinking_buffer.messages = []
+        scene.remove(inequality_symbol, *msgs)
+        return new_opinion
+
 
 class Player(General):
     def __init__(self, opinion: str = ""):
@@ -200,7 +262,7 @@ class Player(General):
         color = self.get_color()
 
         new_opinion_text = Tex(opinion, color=color)
-        new_opinion_text.move_to(self)
+        new_opinion_text.move_to(self.icon)
         self.opinion_text.become(new_opinion_text)
         self.icon.set_stroke(color=color, opacity=1)
 
@@ -236,36 +298,44 @@ class CyclicOpinionTraitor(Traitor):
 
 
 class GameState(Group):
-    def __init__(self, generals: List[General], circle_size=2.2):
+    def __init__(self, generals: List[General]):
         super().__init__()
         self.generals = generals
-        receive_buffer_radius = circle_size - 1.1
-        thinking_buffer_radius = circle_size + 1.15
         # Distribute generals in a circle
         for i in range(len(self.generals)):
             # Create the ith general
             g = self.generals[i]
-            g.shift(self.circle_position(i) * circle_size)
+            g.shift(self.circle_position(i) * GENERAL_CIRCLE_SIZE)
             self.add(g)
             # Create the ith general's message buffer
             receive_buffer = MessageBuffer()
-            receive_buffer.shift(self.circle_position(i) * receive_buffer_radius)
+            receive_buffer.shift(
+                self.circle_position(i) * GENERAL_RECEIVE_BUFFER_RADIUS
+            )
             g.add_receive_buffer(receive_buffer)
             # Create the ith general's thinking buffer
             thinking_buffer = MessageBuffer()
-            thinking_buffer.shift(self.circle_position(i) * thinking_buffer_radius)
+            thinking_buffer.shift(
+                self.circle_position(i) * GENERAL_THINKING_BUFFER_RADIUS
+            )
             g.add_thinking_buffer(thinking_buffer)
 
     def circle_position(self, i: int):
         """
         Return the position of the ith general in the circle.
         """
-        x = np.cos(i * 2 * np.pi / len(self.generals))
-        y = np.sin(i * 2 * np.pi / len(self.generals))
+        # Shift the index by 1 so that the generals are numbered like clocks
+        ii = (i + 1) % len(self.generals)
+        x = np.sin(ii * 2 * np.pi / len(self.generals))
+        y = np.cos(ii * 2 * np.pi / len(self.generals))
         return x * RIGHT + y * UP
 
     def send_messages(
-        self, scene: Scene, messages: List[MsgType], circular_receive=False
+        self,
+        scene: Scene,
+        messages: List[MsgType],
+        circular_receive=False,
+        circular_send=False,
     ):
         """
         Send messages from the sender to the receiver.
@@ -284,8 +354,17 @@ class GameState(Group):
                 # Make the message border black if the sender is a traitor
                 # to indicate that the message is not trustworthy.
                 msg.icon.stroke_color = BLACK
-            # Messages are sent from the sender's position to the receiver's buffer
-            msg.move_to(sender.receive_buffer)
+
+            if circular_send:
+                # Before sending, messages are aligned around the sender's icon,
+                # corresponding to which receiver they are sent to.
+                msg.move_to(
+                    sender.icon.get_center()
+                    + self.circle_position(message.receiver_id) * GENERAL_RADIUS
+                )
+            else:
+                # Messages are sent from the sender's position to the receiver's buffer
+                msg.move_to(sender.receive_buffer)
 
             # Make the message icon appear from the sender's icon
             sender_icon_copy = sender.icon.copy()
@@ -302,7 +381,8 @@ class GameState(Group):
                 # which they were sent.
                 receive_location = (
                     receiver.receive_buffer.get_center()
-                    + self.circle_position(message.sender_id) * 0.3
+                    + self.circle_position(message.sender_id)
+                    * RECEIVE_BUFFER_CIRCULAR_RADIUS
                 )
             else:
                 receive_location = receiver.receive_buffer.get_center()
@@ -320,6 +400,7 @@ class GameState(Group):
         general_ids: int,
         send_to_self=False,
         circular_receive=False,
+        circular_send=False,
         msg_class=Message,
     ):
         messages = []
@@ -331,7 +412,12 @@ class GameState(Group):
                             general_id, i, msg_class(self.generals[general_id].opinion)
                         )
                     )
-        return self.send_messages(scene, messages, circular_receive=circular_receive)
+        return self.send_messages(
+            scene,
+            messages,
+            circular_receive=circular_receive,
+            circular_send=circular_send,
+        )
 
     def send_opinions_to(
         self, scene: Scene, general_id: int, send_to_self: bool = False
@@ -406,26 +492,16 @@ class GameState(Group):
     def full_algorithm(
         self, scene: Scene, leader_ids: List[int], send_to_self: bool = True
     ):
-        # v ← your initial opinion
-        # For i in [1,2,3]:
-        #   Send v to everybody
-        #   Compute majority opinion, receive leader’s opinion
-        #   if ??????
-        #     v ←majority opinion
-        #   else
-        #     v ← leader’s opinion
-        # output v
-
         for leader_id in leader_ids:
             self.generals[leader_id].make_leader(scene)
             for i in range(len(self.generals)):
                 self.broadcast_opinion(
-                    scene, [i], send_to_self=send_to_self, circular_receive=True
+                    scene,
+                    [i],
+                    send_to_self=send_to_self,
+                    circular_receive=True,
+                    circular_send=True,
                 )
-
-            # self.broadcast_opinion(
-            #    scene, range(len(self.generals)), circular_receive=True
-            # )
 
             self.move_all_receive_buffers_to_thinking_buffers(scene)
 
@@ -433,18 +509,18 @@ class GameState(Group):
                 new_opinion = self.generals[leader_id].update_opinion_to_majority(scene)
                 self.update_general_opinions(scene, [leader_id], [new_opinion])
 
-            # Whether it's a trator or not, the leader broadcasts the decision
-            self.broadcast_opinion(scene, [leader_id], msg_class=LeaderMessage)
+            # Whether it's a trator or not, the leader broadcasts its updated opinion
+            self.broadcast_opinion(
+                scene, [leader_id], circular_send=True, msg_class=LeaderMessage
+            )
 
             self.move_all_receive_buffers_to_thinking_buffers(scene)
 
             for i in range(len(self.generals)):
-                if not self.generals[i].is_traitor:
-                    msgs = self.generals[i].thinking_buffer.sort_messages()
-                    if not msgs:
-                        print("No messages, general", i)
-                    else:
-                        scene.play(*msgs)
+                g = self.generals[i]
+                if not g.is_traitor and not g.is_leader:
+                    new_opinion = g.update_opinion_to_supermajority_or_leader(scene)
+                    self.update_general_opinions(scene, [i], [new_opinion])
 
             self.generals[leader_id].remove_leader(scene)
 
@@ -591,15 +667,15 @@ class MajorityWithTraitors(Scene):
 
 class FullWithTraitors(Scene):
     def construct(self):
-        opinions = ["Y", "N", None, "N", "Y", None, "N", "Y", "N", "Y", "N", "Y"]
+        opinions = [None, "Y", None, "N", "Y", "Y", "Y", "N", "Y", "Y", "Y", "Y"]
         game = GameState(
             [
-                Player(),
-                Player(),
                 CyclicOpinionTraitor("YNNY"),
                 Player(),
-                Player(),
                 CyclicOpinionTraitor("NNYY"),
+                Player(),
+                Player(),
+                Player(),
                 Player(),
                 Player(),
                 Player(),
@@ -618,7 +694,7 @@ class FullWithTraitors(Scene):
                     game.generals[i].animate.change_opinion(opinions[i]), run_time=0.2
                 )
 
-        game.full_algorithm(self, leader_ids=[2, 4, 5], send_to_self=True)
+        game.full_algorithm(self, leader_ids=[0, 1, 2], send_to_self=True)
 
         self.wait(1)
 
