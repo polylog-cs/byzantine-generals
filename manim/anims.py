@@ -343,6 +343,43 @@ class CyclicOpinionTraitor(Traitor):
         return ret
 
 
+class CodeWithStepping(Code):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.indicator = None
+        self.rectangle = None
+
+    def indicator_position(self, line_number: int):
+        return self.line_numbers[line_number].get_right() + 0.25 * LEFT
+
+    def rectangle_around_line(self, line_number: int):
+        line = self.code[line_number]
+        offset = 0 if line_number == 0 else 0.03
+        return Rectangle(
+            width=line.width + 0.2,
+            height=line.height - offset + 0.02,
+            color=RED,
+        ).move_to(line.get_center() + offset * DOWN)
+
+    def highlight_line(self, line_number: int, scene: Scene):
+        if self.indicator is not None:
+            new_rectangle = self.rectangle_around_line(line_number)
+            scene.play(
+                self.indicator.animate.move_to(self.indicator_position(line_number)),
+                self.rectangle.animate.become(new_rectangle),
+            )
+        else:
+            self.indicator = Arrow(
+                start=self.indicator_position(line_number),
+                end=self.indicator_position(line_number) + 0.1 * RIGHT,
+                color=RED,
+                max_tip_length_to_length_ratio=1,
+            )
+            self.indicator.move_to(self.indicator_position(line_number))
+            self.rectangle = self.rectangle_around_line(line_number)
+            scene.add(self.indicator, self.rectangle)
+
+
 class GameState(Group):
     def __init__(self, generals: List[General]):
         super().__init__()
@@ -603,10 +640,16 @@ class GameState(Group):
         scene.play(*anims)
 
     def full_algorithm(
-        self, scene: Scene, leader_ids: List[int], send_to_self: bool = True
+        self,
+        scene: Scene,
+        leader_ids: List[int],
+        code: CodeWithStepping,
+        send_to_self: bool = True,
     ):
         for leader_id in leader_ids:
+            code.highlight_line(0, scene)
             self.generals[leader_id].make_leader(scene)
+            code.highlight_line(1, scene)
             for i in range(len(self.generals)):
                 self.broadcast_opinion(
                     scene,
@@ -619,16 +662,19 @@ class GameState(Group):
             self.move_all_receive_buffers_to_thinking_buffers(scene)
 
             if not self.generals[leader_id].is_traitor:
+                code.highlight_line(3, scene)
                 new_opinion = self.generals[leader_id].update_opinion_to_majority(scene)
                 self.update_general_opinions(scene, [leader_id], [new_opinion])
 
             # Whether it's a trator or not, the leader broadcasts its updated opinion
+            code.highlight_line(4, scene)
             self.broadcast_opinion(
                 scene, [leader_id], circular_send=True, msg_class=LeaderMessage
             )
 
             self.move_all_receive_buffers_to_thinking_buffers(scene)
 
+            code.highlight_line(5, scene)
             for i in range(len(self.generals)):
                 g = self.generals[i]
                 if not g.is_traitor and not g.is_leader:
@@ -844,7 +890,7 @@ class FullWithTraitors(Scene):
                 Player(),
             ]
         )
-        game.shift(2 * LEFT)
+        game.shift(3.0 * LEFT)
         self.add(game)
 
         self.wait(0.5)
@@ -854,7 +900,28 @@ class FullWithTraitors(Scene):
                     game.generals[i].animate.change_opinion(opinions[i]), run_time=0.2
                 )
 
-        game.full_algorithm(self, leader_ids=[0, 1, 2], send_to_self=True)
+        code = CodeWithStepping(
+            code="""for leader_id in [1, 2, 3]:
+    send my opinion to everybody (including myself)
+    if I am the leader:  # Algorithm 1
+        update opinion to majority of received messages
+        broadcast my opinion
+    compute number of YES and NO messages # Algorithm 2
+    if YES >> NO or NO >> YES:
+        update opinion to the majority of received messages
+    else:
+        update opinion to the opinion of the leader
+""",
+            language="python",
+            font_size=12,
+        )
+        code.shift(3.5 * RIGHT)
+        self.add(code)
+
+        for i in range(10):
+            code.highlight_line(i, self)
+
+        game.full_algorithm(self, leader_ids=[0, 1, 2], send_to_self=True, code=code)
 
         self.wait(1)
 
