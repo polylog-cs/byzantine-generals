@@ -1,7 +1,9 @@
+from manim import *
+
 def clipart_arrow():
     return ImageMobject("img/arrow.png").scale_to_fit_height(0.7)
 
-def clipart_yes_no_maybe(which, height):
+def clipart_yes_no_maybe(which: ["yes", "no", "maybe"], height = 1):
     pnts_yes = [
         np.array([174.042, 364.002, 0]),
         np.array([169.653, 359.498, 0]),

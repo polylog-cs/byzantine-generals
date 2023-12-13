@@ -12,6 +12,9 @@ random.seed(0)
 def default():
     VMobject.set_default(color=GRAY)
     Polygon.set_default(color=RED)
+    # Tex.set_default(color = text_color)
+    # Text.set_default(color = text_color)
+    # config.text_color = text_color
     # SurroundingRectangle.set_default(color = RED)
     # SurroundingRectangle.set_default(fill_color = config.background_color)
     # SurroundingRectangle.set_default(fill_opacity = 1)
