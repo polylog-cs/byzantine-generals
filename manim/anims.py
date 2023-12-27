@@ -332,7 +332,7 @@ class Setup1(Scene):
         # You can imagine the Byzantine generals' problem as a game played in rounds. In our example, there will be 12 players. 
         
 
-        game = GameState([Player(no_icon = False) for i in range(len(SAMPLE_OPINIONS))])
+        game = GameState([Player(with_icon = True) for i in range(len(SAMPLE_OPINIONS))])
         game.shift(GAME_SHIFT)
 
         # add the generals from the game one by one, 
@@ -584,7 +584,7 @@ class Setup2(Scene):
 
         # add to the scene the objects that were there at the end of Setup1:        
 
-        game = GameState([(Player(no_icon = False) if i not in TRAITOR_IDS else Traitor(no_icon = False)) for i in range(len(SAMPLE_OPINIONS))])
+        game = GameState([(Player(with_icon = True) if i not in TRAITOR_IDS else Traitor(with_icon=True)) for i in range(len(SAMPLE_OPINIONS))])
         game.shift(GAME_SHIFT)
         self.add(game)
         self.play(

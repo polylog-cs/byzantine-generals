@@ -277,7 +277,7 @@ class General(Group):
 
 
 class Player(General):
-    def __init__(self, opinion: str = "", no_icon=True):
+    def __init__(self, opinion: str = "", with_icon=False):
         super().__init__()
         self.opinion = opinion
         self.is_traitor = False
@@ -287,7 +287,7 @@ class Player(General):
         self.add(self.opinion_text)
         self.add(self.icon)
 
-        if not no_icon:
+        if with_icon:
             self.clipart = ImageMobject("img/general.png").scale(0.5)
             self.add(self.clipart)
 
@@ -313,7 +313,7 @@ class Player(General):
 
 
 class Traitor(General):
-    def __init__(self, no_icon=True):
+    def __init__(self, with_icon=False):
         super().__init__()
         self.is_traitor = True
 
@@ -325,7 +325,7 @@ class Traitor(General):
         )
         self.add(self.icon)
 
-        if not no_icon:
+        if with_icon:
             self.clipart = ImageMobject("img/general.png").scale(0.5)
             self.add(self.clipart)
 
