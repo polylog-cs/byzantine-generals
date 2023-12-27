@@ -1,7 +1,9 @@
 from typing import Literal
+
 from manim import *
-from .util_general import text_color
+
 from . import util_general
+from .util_general import text_color
 
 
 class ChatMessage(VGroup):

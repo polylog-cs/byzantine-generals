@@ -1,21 +1,21 @@
 # manim -pql --fps 10 -r 290,180 anims.py Polylogo
-from manim import *
-from utils.util_general import *
 from pathlib import Path
 
-from utils.util_cliparts import *
+from manim import *
+
 from utils.chat_window import ChatWindow
 from utils.generals import (
-    Message,
+    CodeWithStepping,
     Crown,
-    Player,
-    Traitor,
     CyclicOpinionTraitor,
     GameState,
-    CodeWithStepping,
+    Message,
     MsgType,
+    Player,
+    Traitor,
 )
-
+from utils.util_cliparts import *
+from utils.util_general import *
 
 # Vasek's constants for the scenes
 SAMPLE_OPINIONS = ["Y", "N", "Y", "N", "Y", "N", "N", "Y", "N", "Y", "N", "Y"]

@@ -1,5 +1,6 @@
-from typing import List
 from collections import namedtuple
+from typing import List
+
 from manim import *
 
 GENERAL_RADIUS = 0.5

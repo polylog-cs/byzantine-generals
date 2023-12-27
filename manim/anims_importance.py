@@ -1,10 +1,11 @@
 import collections
-from manim import *
-import numpy as np
-from utils.generals import Player
-from utils.chat_window import ChatMessage, ChatWindow
-from utils import util_general
 
+import numpy as np
+from manim import *
+
+from utils import util_general
+from utils.chat_window import ChatMessage, ChatWindow
+from utils.generals import Player
 
 util_general.disable_rich_logging()
 

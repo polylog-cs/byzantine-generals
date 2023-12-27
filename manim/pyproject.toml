@@ -1,4 +1,4 @@
-# If we end up creating a pyproject.toml, we should migrate the configuration to there.
+[tool.ruff]
 
 
 ignore = [
@@ -11,4 +11,8 @@ ignore = [
     # Ambiguous variable name: `l`
     # This one is kind of pedantic.
     "E741",
+]
+
+select = [
+    "I" # Sort imports
 ]

@@ -1,10 +1,11 @@
-import random
-from manim import *
-import manim
-from rich.logging import RichHandler
 import logging
+import random
 import sys
+
+import manim
+from manim import *
 from manim import config
+from rich.logging import RichHandler
 
 ############### DEFAULT OPTIONS
 
