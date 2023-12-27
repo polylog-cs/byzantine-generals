@@ -1,7 +1,8 @@
 import collections
 from manim import *
 import numpy as np
-
+from utils.generals import General, Player
+from utils.chat_window import ChatMessage, ChatWindow
 from utils import util_general
 
 
@@ -145,5 +146,91 @@ class NetworkMessagesWithFires(Scene):
         graph = get_example_graph()
         self.add(graph)
         play_message_animations(self, graph, n=100, fraction_fire=0.1)
+
+        self.wait(1)
+
+
+class BlockchainPlayer(Player):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, with_icon=True, **kwargs)
+        self.chat_window = None
+
+    def set_chat_window(self, chat_window: ChatWindow):
+        if self.chat_window is not None:
+            self.remove(self.chat_window)
+
+        self.chat_window = chat_window
+        self.add(chat_window)
+
+
+class BlockchainGroupChat(Scene):
+    def construct(self):
+        coef = 2.6
+        player_locations = [
+            (x * coef - 3, y * coef) for x, y in [(-1, 1), (1, 1), (1, -1), (-1, -1)]
+        ]
+
+        message_pairs = [
+            ("General #2", "OK guys let’s vote, I vote YES"),
+            ("General #4", "sounds good, I vote YES"),
+            ("General #7", "I vote NO"),
+        ]
+
+        chat = ChatWindow()
+
+        for pair in message_pairs:
+            chat.add_message(pair[0], pair[1], action="add")
+            # self.play()
+            # self.wait()
+        self.add(chat)
+        self.wait(1)
+
+        animations = []
+        players: list[BlockchainPlayer] = []
+
+        for x, y in player_locations:
+            player = BlockchainPlayer().shift(x * RIGHT + y * UP)
+            players.append(player)
+            chat_window = chat.copy()
+            chat_window_scale = 0.3
+            animations.append(
+                chat_window.animate.shift((x + 1.5) * RIGHT + y * UP).scale(
+                    chat_window_scale
+                )
+            )
+            chat_window.messages_scale *= chat_window_scale
+            player.chat_window = chat_window
+
+        self.remove(chat)
+        self.play(FadeIn(*players), *animations)
+
+        self.wait(1)
+        players[0].make_leader(self)
+
+        messages_to_add = [
+            ChatMessage("General #1", "Livvy rizzed up baby Gronk", tail_up=True)
+            .next_to(players[1], direction=DOWN + RIGHT)
+            .shift(LEFT),
+            ChatMessage("General #2", "He might be the new rizz king")
+            .next_to(players[2], direction=UP + RIGHT)
+            .shift(LEFT),
+        ]
+
+        for message in messages_to_add:
+            self.play(FadeIn(message))
+
+            last_message = players[0].chat_window.add_message(
+                message.sender,
+                message.message,
+                action="nothing",
+                background_color=util_general.BASE01,
+            )
+
+            self.play(message.animate.become(last_message))
+
+            # Since we created `last_message` but didn't actually add it to the group,
+            # add it manually here. This is needed so that the next message is put
+            # under this one etc.
+            players[0].chat_window.displayed_messages.add(message)
 
         self.wait(1)
