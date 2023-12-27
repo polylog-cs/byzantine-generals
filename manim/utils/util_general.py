@@ -4,6 +4,7 @@ import manim
 from rich.logging import RichHandler
 import logging
 import sys
+from manim import config
 
 ############### DEFAULT OPTIONS
 
@@ -144,7 +145,6 @@ rainbow = [RED, MAGENTA, VIOLET, BLUE, CYAN, GREEN]
 # [RED, ORANGE, GREEN, TEAL, BLUE, VIOLET, MAGENTA]
 # [GREEN, TEAL, BLUE, VIOLET, MAGENTA, RED, ORANGE]
 
-from manim import config
 
 config.background_color = BASE2
 BACKGROUND_COLOR_LIGHT = BASE2

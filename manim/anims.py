@@ -915,7 +915,7 @@ class Setup2(Scene):
         # two red rectangles appear
         rec1 = Rectangle(height=7, width=6, color=RED)
         rec2 = rec1.copy()
-        recs = Group(rec1, rec2).arrange(RIGHT)
+        _recs = Group(rec1, rec2).arrange(RIGHT)
         self.play(Create(rec1), Wait(), Create(rec2), Wait())
 
 
@@ -1324,7 +1324,8 @@ class SolutionCombine3(Scene):
         # And this is our final algorithm!
 
 
-class SolutionCombine3(Scene):
+# vv: this was named SolutionCombine3, shadowing an earlier class
+class SolutionCombine4(Scene):
     def construct(self):
         game = GameState(
             [

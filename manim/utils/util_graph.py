@@ -388,7 +388,7 @@ class CustomGraph(Graph):
                 end_time = start_time + ratio * (end_time - start_time)
                 end_pos = ratio * end_pos + (1 - ratio) * start_pos
 
-            param = red_stroke_width if thumbnail == False else 2 * DEFAULT_STROKE_WIDTH
+            param = red_stroke_width if not thumbnail else 2 * DEFAULT_STROKE_WIDTH
             line = Line(
                 start=start_pos,
                 end=end_pos,
