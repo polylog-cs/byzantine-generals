@@ -7,3 +7,11 @@ repos:
       - id: trailing-whitespace
       - id: check-yaml
       - id: check-added-large-files
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args: [--fix]
+      # Run the formatter - it's like Black + isort.
+      - id: ruff-format

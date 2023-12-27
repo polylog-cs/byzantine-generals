@@ -17,7 +17,6 @@ from utils.generals import (
 )
 
 
-
 # Vasek's constants for the scenes
 SAMPLE_OPINIONS = ["Y", "N", "Y", "N", "Y", "N", "N", "Y", "N", "Y", "N", "Y"]
 GAME_SHIFT = 2 * LEFT
@@ -29,7 +28,7 @@ TRAITOR_IDS2 = [2, 4]
 SAMPLE_OPINIONS_MANY_Y = ["Y", "N", "Y", "Y", "Y", "N", "N", "Y", "Y", "Y", "Y", "Y"]
 
 SAMPLE_OPINIONS3 = ["N", "N", "Y", "N", "Y", "N", "N", "Y", "N", "N", "N", "Y"]
-TRAITOR_IDS3 = [1,3]
+TRAITOR_IDS3 = [1, 3]
 
 SAMPLE_OPINIONS4 = ["N", "N", "Y", "N", "Y", "N", "N", "Y", "N", "N", "Y", "Y"]
 TRAITOR_IDS4 = [0, 2]
@@ -44,19 +43,23 @@ explanation_texts = [
     r"\raggedright \textbf{Input}: YES/NO for every honest general",
     r"\raggedright \textbf{Output}: YES/NO for every honest general",
     r"\raggedright \textbf{Task}: all honest generals output \\ the same answer",
-    r"\raggedright \textbf{Condition}: if all generals agreed \\ at the beginning, nobody changes opinion"
+    r"\raggedright \textbf{Condition}: if all generals agreed \\ at the beginning, nobody changes opinion",
 ]
 Path("./media/Tex").mkdir(parents=True, exist_ok=True)
-explanations = VGroup(
-    *[Tex(text, color = TEXT_COLOR).scale(0.75) for i, text in enumerate(explanation_texts)]
-).arrange_in_grid(rows = len(explanation_texts), cell_alignment=LEFT).to_edge(RIGHT, buff = 0.5)
+explanations = (
+    VGroup(
+        *[
+            Tex(text, color=TEXT_COLOR).scale(0.75)
+            for i, text in enumerate(explanation_texts)
+        ]
+    )
+    .arrange_in_grid(rows=len(explanation_texts), cell_alignment=LEFT)
+    .to_edge(RIGHT, buff=0.5)
+)
 Group(*explanations[2:]).shift(0.5 * DOWN)
 
 
-
-
 #######################################################
-
 
 
 class LeaderNoTraitors(Scene):
@@ -69,7 +72,7 @@ class LeaderNoTraitors(Scene):
         for i in range(len(game.generals)):
             self.play(
                 FadeIn(game.generals[i]),
-                       )
+            )
             self.wait(0.5)
 
         self.wait(0.5)
@@ -262,11 +265,9 @@ class FullWithTraitors(Scene):
         self.wait(1)
 
 
-
 ######
 # vasek
 ######
-
 
 
 class Intro(Scene):
@@ -290,7 +291,6 @@ class Intro(Scene):
         # [kryptoměny, nějaký obrázky distribuovaný databáze nebo internetu]
 
         # [polylogo]
-
 
 
 class Polylogo(Scene):
@@ -326,13 +326,11 @@ class Polylogo(Scene):
         self.wait()
 
 
-
 class Setup1(Scene):
     def construct(self):
         # You can imagine the Byzantine generals' problem as a game played in rounds. In our example, there will be 12 players.
 
-
-        game = GameState([Player(with_icon = True) for i in range(len(SAMPLE_OPINIONS))])
+        game = GameState([Player(with_icon=True) for i in range(len(SAMPLE_OPINIONS))])
         game.shift(GAME_SHIFT)
 
         # add the generals from the game one by one,
@@ -341,16 +339,14 @@ class Setup1(Scene):
                 *[FadeIn(game.generals[i].clipart) for i in range(len(game.generals))],
                 lag_ratio=0.3,
             )
-            )
+        )
         self.wait(0.5)
 
         # Each player plays one general in a camp outside a city.
 
         # image of the city
         city = ImageMobject("img/city.png").scale(0.5).shift(game.get_center())
-        self.play(
-            FadeIn(city)
-        )
+        self.play(FadeIn(city))
         self.wait()
 
         # The generals are trying to conquer the city, but to be successful, they all have to attack at the same time.
@@ -358,31 +354,52 @@ class Setup1(Scene):
         # all generals at once move a bit towards the city, then back
         self.play(
             AnimationGroup(
-                *[game.generals[i].clipart.animate.shift(-0.5 * game.circle_position(i)) for i in range(len(game.generals))],
+                *[
+                    game.generals[i].clipart.animate.shift(
+                        -0.5 * game.circle_position(i)
+                    )
+                    for i in range(len(game.generals))
+                ],
             )
         )
         self.play(
             AnimationGroup(
-                *[game.generals[i].clipart.animate.shift(0.5 * game.circle_position(i)) for i in range(len(game.generals))],
+                *[
+                    game.generals[i].clipart.animate.shift(
+                        0.5 * game.circle_position(i)
+                    )
+                    for i in range(len(game.generals))
+                ],
             )
         )
         self.wait()
 
-
         # Should they try to attack tomorrow? Every general has some opinion on that
 
         # we reveal the opinions of generals one by one, each opinion is a letter Y or N in a bubble which is a SVG image
-        cliparts= Group(*[game.generals[i].clipart for i in range(len(game.generals))])
+        cliparts = Group(*[game.generals[i].clipart for i in range(len(game.generals))])
         for c in cliparts:
             c.save_state()
-        bubbles = [SVGMobject("img/bubble_say.svg").scale(0.5).next_to(game.generals[i].clipart, RIGHT).shift(0.3*UP) for i in range(len(game.generals))]
-        letters = [Tex(SAMPLE_OPINIONS[i], color = TEXT_COLOR).scale(0.5).move_to(bubbles[i]) for i in range(len(game.generals))]
+        bubbles = [
+            SVGMobject("img/bubble_say.svg")
+            .scale(0.5)
+            .next_to(game.generals[i].clipart, RIGHT)
+            .shift(0.3 * UP)
+            for i in range(len(game.generals))
+        ]
+        letters = [
+            Tex(SAMPLE_OPINIONS[i], color=TEXT_COLOR).scale(0.5).move_to(bubbles[i])
+            for i in range(len(game.generals))
+        ]
         self.play(
             Succession(
-                *[AnimationGroup(
-                    FadeIn(b),
-                    FadeIn(l),
-                ) for b, l in zip(bubbles, letters)],
+                *[
+                    AnimationGroup(
+                        FadeIn(b),
+                        FadeIn(l),
+                    )
+                    for b, l in zip(bubbles, letters)
+                ],
                 lag_ratio=0.3,
             )
         )
@@ -397,7 +414,7 @@ class Setup1(Scene):
                 if i != j:
                     if random.random() < 0.05:
                         messages.append(
-                            MsgType(i, j, Message(SAMPLE_OPINIONS[i], clipart = True))
+                            MsgType(i, j, Message(SAMPLE_OPINIONS[i], clipart=True))
                         )
         random.shuffle(messages)
 
@@ -416,7 +433,6 @@ class Setup1(Scene):
 
         # positions = [game.generals[i].get_center() for i in range(len(game.generals))]
         # # animate generals so that they are in a table 4x3
-
 
         # self.play(
         #     AnimationGroup(
@@ -438,7 +454,11 @@ class Setup1(Scene):
         # )
         # self.wait()
 
-        message_pairs = [("General #2", "Let's make a vote"), ("General #4", "I vote YES. "), ("General #7", "I vote NO.")]
+        message_pairs = [
+            ("General #2", "Let's make a vote"),
+            ("General #4", "I vote YES. "),
+            ("General #7", "I vote NO."),
+        ]
 
         chat = ChatWindow().next_to(game, RIGHT, buff=1)
         self.play(chat.create_window())
@@ -449,11 +469,8 @@ class Setup1(Scene):
             self.wait()
 
         # remove the chat window
-        self.play(
-            FadeOut(chat)
-        )
+        self.play(FadeOut(chat))
         self.wait()
-
 
         # Each general has to stay in his camp and in each round, he can only send a direct message to each other general.
 
@@ -461,11 +478,12 @@ class Setup1(Scene):
         # general with index id gets a bit bigger and shifts a bit outside of the circle
         self.play(
             AnimationGroup(
-                game.generals[id].clipart.animate.scale(1.5).shift(2 * game.circle_position(id)),
+                game.generals[id]
+                .clipart.animate.scale(1.5)
+                .shift(2 * game.circle_position(id)),
             )
         )
         self.wait()
-
 
         # the general then sends a message to all other generals
         # [generál pošle obálku pár dalším]
@@ -474,12 +492,8 @@ class Setup1(Scene):
         messages_to = []
         for i in range(len(game.generals)):
             if i != id:
-                messages_from.append(
-                        MsgType(id, i, Message("hi", clipart=True))
-                    )
-                messages_to.append(
-                    MsgType(i, id, Message("hi", clipart = True))
-                )
+                messages_from.append(MsgType(id, i, Message("hi", clipart=True)))
+                messages_to.append(MsgType(i, id, Message("hi", clipart=True)))
 
         for messages in [messages_from, messages_to]:
             game.send_messages_low_tech(
@@ -492,7 +506,9 @@ class Setup1(Scene):
 
         self.play(
             AnimationGroup(
-                game.generals[id].clipart.animate.scale(1 / 1.5).shift(-2 * game.circle_position(id)),
+                game.generals[id]
+                .clipart.animate.scale(1 / 1.5)
+                .shift(-2 * game.circle_position(id)),
             )
         )
         self.wait()
@@ -503,14 +519,27 @@ class Setup1(Scene):
 
         self.play(
             AnimationGroup(
-                *[game.generals[id].clipart.animate.scale(1.5).shift(2 * game.circle_position(id)) for id in TRAITOR_IDS],
+                *[
+                    game.generals[id]
+                    .clipart.animate.scale(1.5)
+                    .shift(2 * game.circle_position(id))
+                    for id in TRAITOR_IDS
+                ],
             )
         )
         self.wait()
-        traitor_pics = [ImageMobject("img/traitor.png").scale_to_fit_width(game.generals[id].clipart.get_width()).move_to(game.generals[id].clipart) for id in TRAITOR_IDS]
+        traitor_pics = [
+            ImageMobject("img/traitor.png")
+            .scale_to_fit_width(game.generals[id].clipart.get_width())
+            .move_to(game.generals[id].clipart)
+            for id in TRAITOR_IDS
+        ]
         self.play(
             AnimationGroup(
-                *[game.generals[id].clipart.animate.become(pic) for id, pic in zip(TRAITOR_IDS, traitor_pics)],
+                *[
+                    game.generals[id].clipart.animate.become(pic)
+                    for id, pic in zip(TRAITOR_IDS, traitor_pics)
+                ],
                 *[FadeOut(bubbles[i]) for i in TRAITOR_IDS],
                 *[FadeOut(letters[i]) for i in TRAITOR_IDS],
             )
@@ -518,7 +547,12 @@ class Setup1(Scene):
         self.wait()
         self.play(
             AnimationGroup(
-                *[game.generals[id].clipart.animate.scale(1 / 1.5).shift(-2 * game.circle_position(id)) for id in TRAITOR_IDS],
+                *[
+                    game.generals[id]
+                    .clipart.animate.scale(1 / 1.5)
+                    .shift(-2 * game.circle_position(id))
+                    for id in TRAITOR_IDS
+                ],
             )
         )
         self.wait()
@@ -531,15 +565,18 @@ class Setup1(Scene):
         num_pairs = 10
         pairs = []
         for i in range(num_pairs):
-            pairs.append((random.randint(0, len(game.generals) - 1), random.randint(0, len(game.generals) - 1)))
+            pairs.append(
+                (
+                    random.randint(0, len(game.generals) - 1),
+                    random.randint(0, len(game.generals) - 1),
+                )
+            )
             if pairs[-1][0] == pairs[-1][1]:
                 pairs.pop()
 
         messages = []
         for pair in pairs:
-            messages.append(
-                MsgType(pair[0], pair[1], Message("hi", clipart = True))
-            )
+            messages.append(MsgType(pair[0], pair[1], Message("hi", clipart=True)))
 
         # TODO add a parameter lag ratio?
         game.send_messages_low_tech(
@@ -567,9 +604,17 @@ class Setup1(Scene):
         # fadeout
         self.play(
             FadeOut(city),
-            *[FadeOut(bubbles[i]) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
-            *[FadeOut(letters[i]) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
-            #*[game.generals[i].animate.change_opinion("") for i in range(len(game.generals))],
+            *[
+                FadeOut(bubbles[i])
+                for i in range(len(game.generals))
+                if i not in TRAITOR_IDS
+            ],
+            *[
+                FadeOut(letters[i])
+                for i in range(len(game.generals))
+                if i not in TRAITOR_IDS
+            ],
+            # *[game.generals[i].animate.change_opinion("") for i in range(len(game.generals))],
         )
         self.wait()
 
@@ -579,12 +624,21 @@ class Setup1(Scene):
         )
         self.wait()
 
+
 class Setup2(Scene):
     def construct(self):
-
         # add to the scene the objects that were there at the end of Setup1:
 
-        game = GameState([(Player(with_icon = True) if i not in TRAITOR_IDS else Traitor(with_icon=True)) for i in range(len(SAMPLE_OPINIONS))])
+        game = GameState(
+            [
+                (
+                    Player(with_icon=True)
+                    if i not in TRAITOR_IDS
+                    else Traitor(with_icon=True)
+                )
+                for i in range(len(SAMPLE_OPINIONS))
+            ]
+        )
         game.shift(GAME_SHIFT)
         self.add(game)
         self.play(
@@ -594,13 +648,9 @@ class Setup2(Scene):
             game.generals[i].remove(game.generals[i].clipart)
 
         self.wait()
-        self.play(
-            game.animate.shift(1.5*LEFT)
-        )
+        self.play(game.animate.shift(1.5 * LEFT))
         self.wait()
-        #fade out generals' icons
-
-
+        # fade out generals' icons
 
         # Now let me formalize the problem that the honest generals need to solve. Every honest general starts with an opinion of either YES or NO.
 
@@ -608,7 +658,11 @@ class Setup2(Scene):
         self.play(
             AnimationGroup(
                 Succession(
-                    *[game.generals[i].animate.change_opinion(SAMPLE_OPINIONS[i]) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+                    *[
+                        game.generals[i].animate.change_opinion(SAMPLE_OPINIONS[i])
+                        for i in range(len(game.generals))
+                        if i not in TRAITOR_IDS
+                    ],
                     lag_ratio=0.3,
                 ),
                 FadeIn(explanations[0]),
@@ -622,10 +676,10 @@ class Setup2(Scene):
         # at the top of the scene, there is also counter "Round: x" where x is the round number that increments every round
         # TODO just send envelopes
 
-        counter_tex = Tex("Round: 0", color=TEXT_COLOR).next_to(game, UP, buff=0.5)#.align_to(game, LEFT)
-        self.play(
-            FadeIn(counter_tex)
-        )
+        counter_tex = Tex("Round: 0", color=TEXT_COLOR).next_to(
+            game, UP, buff=0.5
+        )  # .align_to(game, LEFT)
+        self.play(FadeIn(counter_tex))
         self.wait()
 
         for it in range(5):
@@ -634,7 +688,7 @@ class Setup2(Scene):
                 for j in range(len(game.generals)):
                     if i != j:
                         messages.append(
-                            MsgType(i, j, Message(SAMPLE_OPINIONS[i], clipart = True))
+                            MsgType(i, j, Message(SAMPLE_OPINIONS[i], clipart=True))
                         )
             random.shuffle(messages)
             # TODO this is just for faster rendering
@@ -645,7 +699,11 @@ class Setup2(Scene):
             )
             # TODO do both together
             self.play(
-                counter_tex.animate.become(Tex(f"Round: {it + 1}", color=TEXT_COLOR).move_to(counter_tex).align_to(counter_tex, LEFT))
+                counter_tex.animate.become(
+                    Tex(f"Round: {it + 1}", color=TEXT_COLOR)
+                    .move_to(counter_tex)
+                    .align_to(counter_tex, LEFT)
+                )
             )
             self.wait(0.5)
 
@@ -658,7 +716,11 @@ class Setup2(Scene):
         # each honest general changes his opinion to "Y"
         # TODO every general will still have the input to the left and now also output to the right
         self.play(
-            *[game.generals[i].animate.change_opinion("Y") for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+            *[
+                game.generals[i].animate.change_opinion("Y")
+                for i in range(len(game.generals))
+                if i not in TRAITOR_IDS
+            ],
         )
         self.wait()
 
@@ -668,7 +730,11 @@ class Setup2(Scene):
         # the letters Y are scaled up and then back down
         self.play(
             AnimationGroup(
-                *[game.generals[i].opinion_text.animate.scale(1.5) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+                *[
+                    game.generals[i].opinion_text.animate.scale(1.5)
+                    for i in range(len(game.generals))
+                    if i not in TRAITOR_IDS
+                ],
                 FadeIn(explanations[2]),
             )
         )
@@ -676,25 +742,36 @@ class Setup2(Scene):
         # next scale down:
         self.play(
             AnimationGroup(
-                *[game.generals[i].opinion_text.animate.scale(1 / 1.5) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+                *[
+                    game.generals[i].opinion_text.animate.scale(1 / 1.5)
+                    for i in range(len(game.generals))
+                    if i not in TRAITOR_IDS
+                ],
             )
         )
         self.wait()
         # Our task is to design a protocol under which the generals always manage to reach this consensus.
         # requirement 3 fades in
 
-
         # But we need to add one more condition to make the problem non-trivial. Right now, we can use the berserk protocol: don’t look at your input at all, don’t communicate with other generals, and just output YES. Surely, with this strategy, all honest generals output the same answer.
 
         # change opinions back to the starting opinions:
         self.play(
-            *[game.generals[i].animate.change_opinion(SAMPLE_OPINIONS[i]) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+            *[
+                game.generals[i].animate.change_opinion(SAMPLE_OPINIONS[i])
+                for i in range(len(game.generals))
+                if i not in TRAITOR_IDS
+            ],
         )
         self.wait()
 
         # fadeout all input letters
         self.play(
-            *[game.generals[i].animate.change_opinion("-") for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+            *[
+                game.generals[i].animate.change_opinion("-")
+                for i in range(len(game.generals))
+                if i not in TRAITOR_IDS
+            ],
         )
         self.wait()
 
@@ -705,20 +782,22 @@ class Setup2(Scene):
         # self.wait()
 
         # then, an envelope appears in the middle and then gets crossed
-        envelope = ImageMobject("img/envelope.png").scale(0.3).move_to(game.get_center())
+        envelope = (
+            ImageMobject("img/envelope.png").scale(0.3).move_to(game.get_center())
+        )
         cross_envelope = Text("×", color=RED, font_size=80).scale(2).move_to(envelope)
-        self.play(
-            FadeIn(envelope)
-        )
+        self.play(FadeIn(envelope))
         self.wait()
-        self.play(
-            FadeIn(cross_envelope)
-        )
+        self.play(FadeIn(cross_envelope))
         self.wait()
 
         # every general now outputs the same answer
         self.play(
-            *[game.generals[i].animate.change_opinion("Y") for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+            *[
+                game.generals[i].animate.change_opinion("Y")
+                for i in range(len(game.generals))
+                if i not in TRAITOR_IDS
+            ],
         )
         # fade out the envelope and the crosses
         self.play(
@@ -733,13 +812,21 @@ class Setup2(Scene):
         for it in range(2):
             self.play(
                 AnimationGroup(
-                    *[game.generals[i].opinion_text.animate.scale(1.5) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+                    *[
+                        game.generals[i].opinion_text.animate.scale(1.5)
+                        for i in range(len(game.generals))
+                        if i not in TRAITOR_IDS
+                    ],
                 )
             )
             self.wait()
             self.play(
                 AnimationGroup(
-                    *[game.generals[i].opinion_text.animate.scale(1/1.5) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+                    *[
+                        game.generals[i].opinion_text.animate.scale(1 / 1.5)
+                        for i in range(len(game.generals))
+                        if i not in TRAITOR_IDS
+                    ],
                 )
             )
             self.wait()
@@ -747,7 +834,11 @@ class Setup2(Scene):
             if it == 0:
                 # change opinions to all NO:
                 self.play(
-                    *[game.generals[i].animate.change_opinion("N") for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+                    *[
+                        game.generals[i].animate.change_opinion("N")
+                        for i in range(len(game.generals))
+                        if i not in TRAITOR_IDS
+                    ],
                 )
 
         # add the third explanation text
@@ -758,34 +849,36 @@ class Setup2(Scene):
 
         # revert back the opinions of generals
         self.play(
-            *[game.generals[i].animate.change_opinion(SAMPLE_OPINIONS[i]) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+            *[
+                game.generals[i].animate.change_opinion(SAMPLE_OPINIONS[i])
+                for i in range(len(game.generals))
+                if i not in TRAITOR_IDS
+            ],
         )
         self.wait()
-
 
         # So, our goal is to come up with a protocol with these two properties
         # we create a red rectangle around the third explanation text, then change it into a rectangle around the fourth explanation text, then fade out the rectangle
         rec = SurroundingRectangle(explanations[2], color=RED)
-        self.play(
-            Create(rec)
-        )
+        self.play(Create(rec))
         self.wait()
-        self.play(
-            Transform(rec, SurroundingRectangle(explanations[3], color=RED))
-        )
+        self.play(Transform(rec, SurroundingRectangle(explanations[3], color=RED)))
         self.wait()
-        self.play(
-            FadeOut(rec)
-        )
+        self.play(FadeOut(rec))
         self.wait()
-
 
         # that works regardless of the starting opinions of generals,
         # generate two random opinions for each general, then change the opinions of generals to these random opinions
         for it in range(2):
-            random_opinions = [random.choice(["Y", "N"]) for i in range(len(game.generals))]
+            random_opinions = [
+                random.choice(["Y", "N"]) for i in range(len(game.generals))
+            ]
             self.play(
-                *[game.generals[i].animate.change_opinion(random_opinions[i]) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
+                *[
+                    game.generals[i].animate.change_opinion(random_opinions[i])
+                    for i in range(len(game.generals))
+                    if i not in TRAITOR_IDS
+                ],
             )
             self.wait()
 
@@ -796,34 +889,34 @@ class Setup2(Scene):
         for it in range(2):
             anims = []
             for i in range(2):
-                anims.append(game.generals[TRAITOR_IDS[i]].animate.shift(game.generals[new_traitors[it][i]].icon.get_center() - game.generals[TRAITOR_IDS[i]].icon.get_center()))
-                anims.append(game.generals[new_traitors[it][i]].animate.shift(game.generals[TRAITOR_IDS[i]].icon.get_center() - game.generals[new_traitors[it][i]].icon.get_center()))
+                anims.append(
+                    game.generals[TRAITOR_IDS[i]].animate.shift(
+                        game.generals[new_traitors[it][i]].icon.get_center()
+                        - game.generals[TRAITOR_IDS[i]].icon.get_center()
+                    )
+                )
+                anims.append(
+                    game.generals[new_traitors[it][i]].animate.shift(
+                        game.generals[TRAITOR_IDS[i]].icon.get_center()
+                        - game.generals[new_traitors[it][i]].icon.get_center()
+                    )
+                )
 
-            self.play(
-                *anims
-            )
+            self.play(*anims)
             self.wait()
 
         # This is a good place to stop the video and try to solve this problem yourself, or at least you can try to figure out how you’d solve it if there were no traitors.
 
         # There are several approaches you can have. In fact, we will solve the problem twice in this video. First, we will solve it similarly to how large databases are solving the problem in practice. Then, we will solve it again using the tricks from cryptocurrency protocols.
 
-        self.play(
-            *[FadeOut(m) for m in self.mobjects]
-        )
+        self.play(*[FadeOut(m) for m in self.mobjects])
         self.wait()
 
         # two red rectangles appear
         rec1 = Rectangle(height=7, width=6, color=RED)
         rec2 = rec1.copy()
         recs = Group(rec1, rec2).arrange(RIGHT)
-        self.play(
-            Create(rec1),
-            Wait(),
-            Create(rec2),
-            Wait()
-        )
-
+        self.play(Create(rec1), Wait(), Create(rec2), Wait())
 
 
 class Solution1(Scene):
@@ -834,11 +927,9 @@ class Solution1(Scene):
             *[FadeIn(game.generals[i]) for i in range(len(game.generals))],
         )
         self.wait()
-        #generals get their starting opinion
+        # generals get their starting opinion
         for i in range(len(game.generals)):
-            self.play(
-                game.generals[i].animate.change_opinion(SAMPLE_OPINIONS2[i])
-            )
+            self.play(game.generals[i].animate.change_opinion(SAMPLE_OPINIONS2[i]))
         self.wait()
         # Solution 2
         # So this was the first approach. Here is a different approach. As part of our protocol, we could make one general the leader. Then, everybody sends their token to the leader, the leader decides on the answer, let’s say by choosing the majority opinion, and sends the answer back to the rest.
@@ -849,7 +940,13 @@ class Solution1(Scene):
         # This protocol surely works if there are no traitors, but if we are unlucky and choose a traitor as the leader, he gets a complete control over the output of honest generals, a spectacular failure!
 
         for i in TRAITOR_IDS3:
-            game.change_general(self, i, CyclicOpinionTraitor(''.join(random.choice(['Y', 'N']) for _ in range(12))))
+            game.change_general(
+                self,
+                i,
+                CyclicOpinionTraitor(
+                    "".join(random.choice(["Y", "N"]) for _ in range(12))
+                ),
+            )
 
         game.leader_algorithm(self, 1)
         self.wait()
@@ -861,9 +958,7 @@ class Solution1(Scene):
         # change opinions back
         for i in range(len(game.generals)):
             if i not in TRAITOR_IDS3:
-                self.play(
-                    game.generals[i].animate.change_opinion(SAMPLE_OPINIONS3[i])
-                )
+                self.play(game.generals[i].animate.change_opinion(SAMPLE_OPINIONS3[i]))
         self.wait()
 
         # Notice that the output of the protocol is not necessarily the majority opinion of honest generals, because the traitors also get to vote,
@@ -879,9 +974,7 @@ class Solution1(Scene):
             FadeIn(explanations),
         )
         self.wait()
-        self.play(
-            FadeIn(SurroundingRectangle(explanations[3], color=RED))
-        )
+        self.play(FadeIn(SurroundingRectangle(explanations[3], color=RED)))
         self.wait(5)
 
 
@@ -895,7 +988,7 @@ class Solution2(Scene):
             *[FadeIn(game.generals[i]) for i in range(len(game.generals))],
         )
         self.wait()
-        #generals get their starting opinion
+        # generals get their starting opinion
         for i in range(len(game.generals)):
             game.generals[i].change_opinion(SAMPLE_OPINIONS2[i])
         self.wait()
@@ -908,8 +1001,6 @@ class Solution2(Scene):
 
         # [představuju si, že tokeny u každého generála skončí na kopičkách]
 
-
-
         # If there’s a tie, let’s say he outputs YES. In this example, everybody got 7 YES messages and 5 NO messages, so everybody agrees on YES.
 
         game.majority_algorithm(self)
@@ -917,13 +1008,22 @@ class Solution2(Scene):
 
         # [“7 YES messages” circubscribe 7 YES tokenů u každého generála]
 
-        game_with_traitors = GameState([(CyclicOpinionTraitor(''.join(random.choice(['Y', 'N']) for _ in range(12))) if i in TRAITOR_IDS2 else Player(opinion = SAMPLE_OPINIONS2[i])) for i in range(len(SAMPLE_OPINIONS2))])
+        game_with_traitors = GameState(
+            [
+                (
+                    CyclicOpinionTraitor(
+                        "".join(random.choice(["Y", "N"]) for _ in range(12))
+                    )
+                    if i in TRAITOR_IDS2
+                    else Player(opinion=SAMPLE_OPINIONS2[i])
+                )
+                for i in range(len(SAMPLE_OPINIONS2))
+            ]
+        )
 
         for i in range(len(game.generals)):
             if i not in TRAITOR_IDS2:
-                self.play(
-                    game.generals[i].animate.change_opinion(SAMPLE_OPINIONS2[i])
-                )
+                self.play(game.generals[i].animate.change_opinion(SAMPLE_OPINIONS2[i]))
                 self.remove(game.generals[i])
                 self.add(game_with_traitors.generals[i])
             else:
@@ -940,12 +1040,18 @@ class Solution2(Scene):
         # highlight 5 Y, then 5 N opinions
         for l in ["Y", "N"]:
             self.play(
-                *[Indicate(game.generals[i].opinion_text, color = game.generals[i].opinion_text.get_color()) for i in range(len(game.generals)) if i not in TRAITOR_IDS2 and SAMPLE_OPINIONS2[i] == l],
+                *[
+                    Indicate(
+                        game.generals[i].opinion_text,
+                        color=game.generals[i].opinion_text.get_color(),
+                    )
+                    for i in range(len(game.generals))
+                    if i not in TRAITOR_IDS2 and SAMPLE_OPINIONS2[i] == l
+                ],
             )
             self.wait()
 
         # Now the traitors can send 2 YES messages to some generals and 2 NO messages to some other generals.
-
 
         game.majority_algorithm(self)
 
@@ -955,7 +1061,14 @@ class Solution2(Scene):
         # highlight generals with output Y, then N
         for l in ["Y", "N"]:
             self.play(
-                *[Indicate(game.generals[i].opinion_text, color = game.generals[i].opinion_text.get_color()) for i in range(len(game.generals)) if i not in TRAITOR_IDS2 and SAMPLE_OPINIONS2[i] == l],
+                *[
+                    Indicate(
+                        game.generals[i].opinion_text,
+                        color=game.generals[i].opinion_text.get_color(),
+                    )
+                    for i in range(len(game.generals))
+                    if i not in TRAITOR_IDS2 and SAMPLE_OPINIONS2[i] == l
+                ],
             )
             self.wait()
 
@@ -974,18 +1087,18 @@ class Solution2(Scene):
         num = 0
         for it in range(len(game.generals)):
             if it not in TRAITOR_IDS2 and SAMPLE_OPINIONS_MANY_Y[it] == "Y":
-                txt = Text(str(num + 1), color = TEXT_COLOR).scale(0.5).next_to(game.generals[it].opinion_text, RIGHT)
-                numbers.append(txt)
-                self.play(
-                    FadeIn(txt)
+                txt = (
+                    Text(str(num + 1), color=TEXT_COLOR)
+                    .scale(0.5)
+                    .next_to(game.generals[it].opinion_text, RIGHT)
                 )
+                numbers.append(txt)
+                self.play(FadeIn(txt))
                 num += 1
         self.wait()
 
         # fadeout numbers
-        self.play(
-            *[FadeOut(n) for n in numbers]
-        )
+        self.play(*[FadeOut(n) for n in numbers])
         self.wait()
 
         # In that case, whatever the traitors do, every honest general ends up with at least 7 YES opinions, which is enough to make him output YES. Similarly, the protocol works if at least 7 honest generals start with the NO opinion.
@@ -1002,15 +1115,37 @@ class SolutionCombine1(Scene):
         sc = 0.7
         shft = 3
         games = [
-            GameState([(CyclicOpinionTraitor(''.join(random.choice(['Y', 'N']) for _ in range(12))) if i in TRAITOR_IDS else Player(opinion=SAMPLE_OPINIONS[i])) for i in range(len(SAMPLE_OPINIONS))]).scale(sc).shift(shft*dir)
+            GameState(
+                [
+                    (
+                        CyclicOpinionTraitor(
+                            "".join(random.choice(["Y", "N"]) for _ in range(12))
+                        )
+                        if i in TRAITOR_IDS
+                        else Player(opinion=SAMPLE_OPINIONS[i])
+                    )
+                    for i in range(len(SAMPLE_OPINIONS))
+                ]
+            )
+            .scale(sc)
+            .shift(shft * dir)
             for dir in [LEFT, RIGHT]
         ]
         titles = [
-            Tex("Algorithm " + str(i + 1), color=TEXT_COLOR).scale(0.7).next_to(games[i], UP, buff=0.5)
+            Tex("Algorithm " + str(i + 1), color=TEXT_COLOR)
+            .scale(0.7)
+            .next_to(games[i], UP, buff=0.5)
             for i in range(2)
         ]
-        comments = [Tex(str, color = TEXT_COLOR).scale(0.7).next_to(games[i], DOWN, buff = 0.5)
-                    for i, str in enumerate(["works if the leader is honest", "works if the initial opinions are skewed"])]
+        comments = [
+            Tex(str, color=TEXT_COLOR).scale(0.7).next_to(games[i], DOWN, buff=0.5)
+            for i, str in enumerate(
+                [
+                    "works if the leader is honest",
+                    "works if the initial opinions are skewed",
+                ]
+            )
+        ]
 
         self.play(
             *[FadeIn(games[i]) for i in range(2)],
@@ -1020,17 +1155,13 @@ class SolutionCombine1(Scene):
 
         # The first protocol works if the selected leader happens to be honest.
 
-        self.play(
-            FadeIn(comments[0])
-        )
+        self.play(FadeIn(comments[0]))
         self.wait()
         games[0].leader_algorithm(self, 0)
         self.wait()
 
         # The second protocol works if the initial opinions of honest generals are already skewed heavily in favor of one of the opinions.
-        self.play(
-            FadeIn(comments[1])
-        )
+        self.play(FadeIn(comments[1]))
         self.wait()
         games[1].majority_algorithm(self)
         self.wait()
@@ -1038,37 +1169,40 @@ class SolutionCombine1(Scene):
         # Let’s try to combine the strengths of the two protocols into a new one that always works!
         self.play(
             *[FadeOut(m) for m in titles + comments],
-            *[game.animate.scale(1/sc).move_to(ORIGIN) for game in games],
+            *[game.animate.scale(1 / sc).move_to(ORIGIN) for game in games],
         )
         self.wait(3)
 
+
 class SolutionCombine2(Scene):
     def construct(self):
-
-        game = GameState([(CyclicOpinionTraitor(''.join(random.choice(['Y', 'N']) for _ in range(12))) if i in TRAITOR_IDS4 else Player(opinion=SAMPLE_OPINIONS4[i])) for i in range(len(SAMPLE_OPINIONS3))])
+        game = GameState(
+            [
+                (
+                    CyclicOpinionTraitor(
+                        "".join(random.choice(["Y", "N"]) for _ in range(12))
+                    )
+                    if i in TRAITOR_IDS4
+                    else Player(opinion=SAMPLE_OPINIONS4[i])
+                )
+                for i in range(len(SAMPLE_OPINIONS3))
+            ]
+        )
         self.add(game)
 
         # Let’s start by looking at the first protocol. How can we deal with the fact that the leader can be a traitor? Well, we know that there are at most 2 traitors, so we could try to run the protocol three times in a row, with three different leaders. We know that at least once the leader is going to be honest.
 
-        crowns = [Crown(parent = game.generals[i].icon) for i in range(3)]
+        crowns = [Crown(parent=game.generals[i].icon) for i in range(3)]
         crown = crowns[0]
 
-        self.play(
-            FadeIn(crown)
-        )
+        self.play(FadeIn(crown))
         self.wait()
         for i in [1, 2]:
-            self.play(
-                crown.animate.move_to(crowns[i])
-            )
+            self.play(crown.animate.move_to(crowns[i]))
             self.wait()
-        self.play(
-            Circumscribe(game.generals[1].icon, color = RED)
-        )
+        self.play(Circumscribe(game.generals[1].icon, color=RED))
         self.wait()
-        self.play(
-            FadeOut(crown)
-        )
+        self.play(FadeOut(crown))
         self.wait()
         # [u prvního generála se objeví korunka, možná vedle ní něco jako “Phase 1”, pak se posune k druhému generálovi, pak k třetímu “at least once the leader…” -> první a třetí generál jsou řekněme traitoři, highlightujeme toho druhého který je honest]
 
@@ -1089,11 +1223,16 @@ class SolutionCombine2(Scene):
         # generals change opinions to Y
         for i in range(len(game.generals)):
             if i not in TRAITOR_IDS4:
-                self.play(
-                    game.generals[i].animate.change_opinion("Y")
-                )
+                self.play(game.generals[i].animate.change_opinion("Y"))
         print(game.generals[i].icon.get_width())
-        locks = [ImageMobject("img/lock.png").scale_to_fit_width(game.generals[i].icon.get_width()/1.5).next_to(game.generals[i].icon, RIGHT, buff = -0.3).shift(0.3*DOWN) for i in range(len(game.generals)) if i not in TRAITOR_IDS4]
+        locks = [
+            ImageMobject("img/lock.png")
+            .scale_to_fit_width(game.generals[i].icon.get_width() / 1.5)
+            .next_to(game.generals[i].icon, RIGHT, buff=-0.3)
+            .shift(0.3 * DOWN)
+            for i in range(len(game.generals))
+            if i not in TRAITOR_IDS4
+        ]
         self.play(
             Succession(
                 *[FadeIn(lock) for lock in locks],
@@ -1101,18 +1240,27 @@ class SolutionCombine2(Scene):
             )
         )
         self.wait()
-        self.play(
-            *[FadeOut(lock) for lock in locks]
-        )
+        self.play(*[FadeOut(lock) for lock in locks])
         self.wait()
 
 
 class SolutionCombine3(Scene):
     def construct(self):
-        game = GameState([(CyclicOpinionTraitor(''.join(random.choice(['Y', 'N']) for _ in range(12))) if i in TRAITOR_IDS4 else Player(opinion="Y")) for i in range(len(SAMPLE_OPINIONS4))])
+        game = GameState(
+            [
+                (
+                    CyclicOpinionTraitor(
+                        "".join(random.choice(["Y", "N"]) for _ in range(12))
+                    )
+                    if i in TRAITOR_IDS4
+                    else Player(opinion="Y")
+                )
+                for i in range(len(SAMPLE_OPINIONS4))
+            ]
+        )
         self.add(game)
 
-        #We can do this with the help of our second protocol where everybody sends a token to everybody – in the case where all the generals agree on the same value, we will use this protocol to ensure that honest generals ignore the leader’s proposal and keep their initial opinion.
+        # We can do this with the help of our second protocol where everybody sends a token to everybody – in the case where all the generals agree on the same value, we will use this protocol to ensure that honest generals ignore the leader’s proposal and keep their initial opinion.
 
         # run majority algo
         game.majority_algorithm(self)
@@ -1125,9 +1273,7 @@ class SolutionCombine3(Scene):
 
         for i in range(len(game.generals)):
             if i not in TRAITOR_IDS4:
-                self.play(
-                    game.generals[i].animate.change_opinion(SAMPLE_OPINIONS4[i])
-                )
+                self.play(game.generals[i].animate.change_opinion(SAMPLE_OPINIONS4[i]))
         code = CodeWithStepping(
             code="""for leader_id in [1, 2, 3]:
     send my opinion to everybody (including myself)
@@ -1144,7 +1290,7 @@ class SolutionCombine3(Scene):
             font_size=12,
         )
 
-        game.full_algorithm(self, leader_ids=[1], send_to_self=True, code = code)
+        game.full_algorithm(self, leader_ids=[1], send_to_self=True, code=code)
 
         # [provedou se obě animace co už známe]
 
@@ -1171,17 +1317,27 @@ class SolutionCombine3(Scene):
         # v ← leader’s opinion
         # output v
 
-
         # ]
 
         # The right choice is that whenever a general gets at least 10 YES tokens from other generals, he chooses the majority opinion, and the same for at least 10 NO tokens. This is because whenever all honest generals already agree on the same value, we know that each general receives at least 10 YES or 10 NO tokens. So, this is the case when we want to disregard the leader and just go with the majority.
 
         # And this is our final algorithm!
 
+
 class SolutionCombine3(Scene):
     def construct(self):
-
-        game = GameState([(CyclicOpinionTraitor(''.join(random.choice(['Y', 'N']) for _ in range(12))) if i in TRAITOR_IDS5 else Player(opinion=SAMPLE_OPINIONS[i])) for i in range(len(SAMPLE_OPINIONS5))])
+        game = GameState(
+            [
+                (
+                    CyclicOpinionTraitor(
+                        "".join(random.choice(["Y", "N"]) for _ in range(12))
+                    )
+                    if i in TRAITOR_IDS5
+                    else Player(opinion=SAMPLE_OPINIONS[i])
+                )
+                for i in range(len(SAMPLE_OPINIONS5))
+            ]
+        )
         self.add(game)
 
         code = CodeWithStepping(
@@ -1200,5 +1356,5 @@ class SolutionCombine3(Scene):
             font_size=12,
         )
 
-        game.full_algorithm(self, leader_ids=[0, 1, 2], send_to_self=True, code = code)
+        game.full_algorithm(self, leader_ids=[0, 1, 2], send_to_self=True, code=code)
         # postprocessing : stopnout na správných místech

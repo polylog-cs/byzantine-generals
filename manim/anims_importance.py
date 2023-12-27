@@ -1,7 +1,7 @@
 import collections
 from manim import *
 import numpy as np
-from utils.generals import General, Player
+from utils.generals import Player
 from utils.chat_window import ChatMessage, ChatWindow
 from utils import util_general
 

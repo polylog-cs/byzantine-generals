@@ -1,7 +1,4 @@
-import copy
-import itertools
 import random
-import math
 from manim import *
 import manim
 from rich.logging import RichHandler
