@@ -8,6 +8,7 @@ from icecream import ic
 from utils.util_general import *
 from collections import namedtuple
 from typing import Any, List
+from pathlib import Path
 
 from utils.util_cliparts import *
 
@@ -59,6 +60,7 @@ explanation_texts = [
     r"\raggedright \textbf{Task}: all honest generals output \\ the same answer",
     r"\raggedright \textbf{Condition}: if all generals agreed \\ at the beginning, nobody changes opinion"
 ]
+Path("./media/Tex").mkdir(parents=True, exist_ok=True)
 explanations = VGroup(
     *[Tex(text, color = TEXT_COLOR).scale(0.75) for i, text in enumerate(explanation_texts)]
 ).arrange_in_grid(rows = len(explanation_texts), cell_alignment=LEFT).to_edge(RIGHT, buff = 0.5)
