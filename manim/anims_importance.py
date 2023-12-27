@@ -5,6 +5,9 @@ import numpy as np
 from utils import util_general
 
 
+util_general.disable_rich_logging()
+
+
 class ComputerVertex(Group):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -55,6 +58,7 @@ def play_message_animations(scene: Scene, graph: Graph, n: int, fraction_fire: f
     rng = np.random.default_rng(16)
 
     fires = {k: None for k in graph.vertices.keys()}
+    # Remove fires in the order they were created to avoid fires "flashing" only for a few frames
     fire_queue = collections.deque()
 
     animations = []

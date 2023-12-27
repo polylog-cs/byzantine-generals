@@ -3,6 +3,10 @@ import itertools
 import random
 import math
 from manim import *
+import manim
+from rich.logging import RichHandler
+import logging
+import sys
 
 ############### DEFAULT OPTIONS
 
@@ -20,6 +24,30 @@ def default():
     # SurroundingRectangle.set_default(fill_opacity = 1)
 
 
+def disable_rich_logging():
+    """Disable Manim's Rich-based logger because it's annoying.
+
+    Manim uses the Python package Rich to format its logs.
+    It tries to split lines nicely, but then it also splits file paths and then you can't
+    command-click them to open them in the terminal.
+    """
+    # It seems that manim only has the rich handler, but let's remove it specifically
+    # in case any file handlers are added under some circumstances.
+    for handler in manim.logger.handlers:
+        if isinstance(handler, RichHandler):
+            manim.logger.handlers.remove(handler)
+
+    ANSI_DARK_GRAY = "\033[1;30m"
+    ANSI_END = "\033[0m"
+
+    logging.basicConfig(
+        format=f"{ANSI_DARK_GRAY}%(asctime)s %(levelname)s{ANSI_END} %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    manim.logger.addHandler(logging.StreamHandler(sys.stdout))
+
+
 ############### GENERATING SOUNDS
 # self.add_sound(file_name)
 
@@ -34,6 +62,8 @@ def random_pop_file():
 
 def random_whoosh_file():
     return f"audio/whoosh/whoosh_{random.randint(0, 3)}.wav"
+
+
 whoosh_gain = -8
 
 
@@ -52,12 +82,12 @@ def random_rubik_file():
 def random_typewriter_file():
     return f"audio/typewriter/t{random.randint(0, 9)}.wav"
 
+
 def step_sound_file(randomize=True):
     if randomize:
         return random_tick_file()
     else:
         return "audio/tick/tick_0.wav"
-
 
 
 ############### ANIMATIONS
@@ -67,7 +97,6 @@ def arrive_from(obj, dir, buff=0.5):
     pos = obj.get_center()
     obj.align_to(Point().to_edge(dir, buff=0), -dir).shift(buff * dir)
     return obj.animate.move_to(pos)
-
 
 
 ############### SOLARIZED COLORS
