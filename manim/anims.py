@@ -273,14 +273,14 @@ class Intro(Scene):
     def construct(self):
         default()
 
-        # It turns out that a pretty similar game is one of the most fundamental problems of computer science. 
+        # It turns out that a pretty similar game is one of the most fundamental problems of computer science.
 
         # přejde se z videa karet do obrázků generálů
 
-        # It’s known as the Byzantine Generals problem and in this video, 
+        # It’s known as the Byzantine Generals problem and in this video,
 
-        # zazoomuje se doprostřed generálů, objeví se text 
-        
+        # zazoomuje se doprostřed generálů, objeví se text
+
         # we’ll see how to solve it and why it is so important for databases storing your data and for blockchain protocols like Bitcoin.
 
         # nalevo se zobrazí síť kde se posílají zprávy
@@ -329,13 +329,13 @@ class Polylogo(Scene):
 
 class Setup1(Scene):
     def construct(self):
-        # You can imagine the Byzantine generals' problem as a game played in rounds. In our example, there will be 12 players. 
-        
+        # You can imagine the Byzantine generals' problem as a game played in rounds. In our example, there will be 12 players.
+
 
         game = GameState([Player(with_icon = True) for i in range(len(SAMPLE_OPINIONS))])
         game.shift(GAME_SHIFT)
 
-        # add the generals from the game one by one, 
+        # add the generals from the game one by one,
         self.play(
             Succession(
                 *[FadeIn(game.generals[i].clipart) for i in range(len(game.generals))],
@@ -343,18 +343,18 @@ class Setup1(Scene):
             )
             )
         self.wait(0.5)
-        
-        # Each player plays one general in a camp outside a city. 
-        
+
+        # Each player plays one general in a camp outside a city.
+
         # image of the city
         city = ImageMobject("img/city.png").scale(0.5).shift(game.get_center())
         self.play(
             FadeIn(city)
         )
         self.wait()
-        
-        # The generals are trying to conquer the city, but to be successful, they all have to attack at the same time. 
-            
+
+        # The generals are trying to conquer the city, but to be successful, they all have to attack at the same time.
+
         # all generals at once move a bit towards the city, then back
         self.play(
             AnimationGroup(
@@ -367,9 +367,9 @@ class Setup1(Scene):
             )
         )
         self.wait()
-        
-        
-        # Should they try to attack tomorrow? Every general has some opinion on that 
+
+
+        # Should they try to attack tomorrow? Every general has some opinion on that
 
         # we reveal the opinions of generals one by one, each opinion is a letter Y or N in a bubble which is a SVG image
         cliparts= Group(*[game.generals[i].clipart for i in range(len(game.generals))])
@@ -406,14 +406,14 @@ class Setup1(Scene):
             messages,
         )
         self.wait()
-        
+
         # [animace jak se Y/N změní na samá Y a pak zpět]
 
         # There are two issues that are standing in their way:
 
-        # First, the generals don’t have the option to get together as a group or use some kind of group chat application. 
+        # First, the generals don’t have the option to get together as a group or use some kind of group chat application.
         # all generals shift together to the right where they make a block 4x3
-        
+
         # positions = [game.generals[i].get_center() for i in range(len(game.generals))]
         # # animate generals so that they are in a table 4x3
 
@@ -455,7 +455,7 @@ class Setup1(Scene):
         self.wait()
 
 
-        # Each general has to stay in his camp and in each round, he can only send a direct message to each other general. 
+        # Each general has to stay in his camp and in each round, he can only send a direct message to each other general.
 
         id = 3
         # general with index id gets a bit bigger and shifts a bit outside of the circle
@@ -465,7 +465,7 @@ class Setup1(Scene):
             )
         )
         self.wait()
-        
+
 
         # the general then sends a message to all other generals
         # [generál pošle obálku pár dalším]
@@ -481,7 +481,7 @@ class Setup1(Scene):
                     MsgType(i, id, Message("hi", clipart = True))
                 )
 
-        for messages in [messages_from, messages_to]:        
+        for messages in [messages_from, messages_to]:
             game.send_messages_low_tech(
                 self,
                 messages,
@@ -496,7 +496,7 @@ class Setup1(Scene):
             )
         )
         self.wait()
-        # The second reason why this is going to be hard is that two of the generals are secretly plotting together against the rest - I will call these two traitors. Whatever strategy you come up with for the honest generals to play, the traitors know this strategy and will try to break it. 
+        # The second reason why this is going to be hard is that two of the generals are secretly plotting together against the rest - I will call these two traitors. Whatever strategy you come up with for the honest generals to play, the traitors know this strategy and will try to break it.
         # [traitoři jsou generálové kterým narostou rohy, nebo se změní clipart na čertíka]
 
         # traitor generals are replaced with a traitor image
@@ -523,9 +523,9 @@ class Setup1(Scene):
         )
         self.wait()
 
-        # So these will be the obstacles: 
+        # So these will be the obstacles:
         # First: only direct messages.
-        
+
         # we generate a few random pairs of generals and send messages between them
 
         num_pairs = 10
@@ -534,20 +534,20 @@ class Setup1(Scene):
             pairs.append((random.randint(0, len(game.generals) - 1), random.randint(0, len(game.generals) - 1)))
             if pairs[-1][0] == pairs[-1][1]:
                 pairs.pop()
-        
+
         messages = []
         for pair in pairs:
             messages.append(
                 MsgType(pair[0], pair[1], Message("hi", clipart = True))
             )
-        
+
         # TODO add a parameter lag ratio?
         game.send_messages_low_tech(
             self,
             messages,
         )
-        
-        #  Second: two secret traitors. 
+
+        #  Second: two secret traitors.
 
         # the traitor icons scale up and then scale back down
 
@@ -564,7 +564,7 @@ class Setup1(Scene):
         )
         self.wait()
 
-        # fadeout 
+        # fadeout
         self.play(
             FadeOut(city),
             *[FadeOut(bubbles[i]) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
@@ -582,7 +582,7 @@ class Setup1(Scene):
 class Setup2(Scene):
     def construct(self):
 
-        # add to the scene the objects that were there at the end of Setup1:        
+        # add to the scene the objects that were there at the end of Setup1:
 
         game = GameState([(Player(with_icon = True) if i not in TRAITOR_IDS else Traitor(with_icon=True)) for i in range(len(SAMPLE_OPINIONS))])
         game.shift(GAME_SHIFT)
@@ -602,7 +602,7 @@ class Setup2(Scene):
 
 
 
-        # Now let me formalize the problem that the honest generals need to solve. Every honest general starts with an opinion of either YES or NO. 
+        # Now let me formalize the problem that the honest generals need to solve. Every honest general starts with an opinion of either YES or NO.
 
         # every general gets his opinion in succession, also, the first explanation text appears
         self.play(
@@ -616,7 +616,7 @@ class Setup2(Scene):
         )
         self.wait(0.5)
 
-        # The generals then go through several rounds of sending each other messages following some strategy, or protocol. 
+        # The generals then go through several rounds of sending each other messages following some strategy, or protocol.
 
         # five rounds, in each round every general sends an opinion to every other general:
         # at the top of the scene, there is also counter "Round: x" where x is the round number that increments every round
@@ -649,7 +649,7 @@ class Setup2(Scene):
             )
             self.wait(0.5)
 
-        # When the protocol finishes, each general outputs his answer which is either YES or NO and which may be different from his initial opinion. 
+        # When the protocol finishes, each general outputs his answer which is either YES or NO and which may be different from his initial opinion.
         self.play(
             FadeIn(explanations[1]),
         )
@@ -664,7 +664,7 @@ class Setup2(Scene):
 
         # [každý generál má u sebe input i output, traitor asi žádný input/output nemá, ať je jasný co znamená “honest generals”]
 
-        # Every honest general should output the same answer, meaning that the honest generals agreed whether to attack tomorrow. 
+        # Every honest general should output the same answer, meaning that the honest generals agreed whether to attack tomorrow.
         # the letters Y are scaled up and then back down
         self.play(
             AnimationGroup(
@@ -680,11 +680,11 @@ class Setup2(Scene):
             )
         )
         self.wait()
-        # Our task is to design a protocol under which the generals always manage to reach this consensus. 
+        # Our task is to design a protocol under which the generals always manage to reach this consensus.
         # requirement 3 fades in
-        
 
-        # But we need to add one more condition to make the problem non-trivial. Right now, we can use the berserk protocol: don’t look at your input at all, don’t communicate with other generals, and just output YES. Surely, with this strategy, all honest generals output the same answer. 
+
+        # But we need to add one more condition to make the problem non-trivial. Right now, we can use the berserk protocol: don’t look at your input at all, don’t communicate with other generals, and just output YES. Surely, with this strategy, all honest generals output the same answer.
 
         # change opinions back to the starting opinions:
         self.play(
@@ -727,7 +727,7 @@ class Setup2(Scene):
         )
         self.wait()
 
-        # To fix this, we’ll explicitly request that if all honest generals start with YES, they all need to output YES at the end. And conversely, if all start with NO, they all need to output NO. In other words, if all generals already agreed at the beginning of the protocol, nobody is going to change their opinion. 
+        # To fix this, we’ll explicitly request that if all honest generals start with YES, they all need to output YES at the end. And conversely, if all start with NO, they all need to output NO. In other words, if all generals already agreed at the beginning of the protocol, nobody is going to change their opinion.
 
         # the letters Y are scaled up and then back down
         for it in range(2):
@@ -748,14 +748,14 @@ class Setup2(Scene):
                 # change opinions to all NO:
                 self.play(
                     *[game.generals[i].animate.change_opinion("N") for i in range(len(game.generals)) if i not in TRAITOR_IDS],
-                )        
+                )
 
         # add the third explanation text
         self.play(
             FadeIn(explanations[3]),
         )
         self.wait()
-        
+
         # revert back the opinions of generals
         self.play(
             *[game.generals[i].animate.change_opinion(SAMPLE_OPINIONS[i]) for i in range(len(game.generals)) if i not in TRAITOR_IDS],
@@ -763,7 +763,7 @@ class Setup2(Scene):
         self.wait()
 
 
-        # So, our goal is to come up with a protocol with these two properties   
+        # So, our goal is to come up with a protocol with these two properties
         # we create a red rectangle around the third explanation text, then change it into a rectangle around the fourth explanation text, then fade out the rectangle
         rec = SurroundingRectangle(explanations[2], color=RED)
         self.play(
@@ -778,7 +778,7 @@ class Setup2(Scene):
             FadeOut(rec)
         )
         self.wait()
-        
+
 
         # that works regardless of the starting opinions of generals,
         # generate two random opinions for each general, then change the opinions of generals to these random opinions
@@ -789,7 +789,7 @@ class Setup2(Scene):
             )
             self.wait()
 
-        # whichever two generals are traitors, and whatever the traitors are trying to do. 
+        # whichever two generals are traitors, and whatever the traitors are trying to do.
         # generate two new random traitors that are different from current ones. Then swap the traitors with the new ones
         new_traitors = [[2, 7], [4, 6]]
 
@@ -804,9 +804,9 @@ class Setup2(Scene):
             )
             self.wait()
 
-        # This is a good place to stop the video and try to solve this problem yourself, or at least you can try to figure out how you’d solve it if there were no traitors. 
+        # This is a good place to stop the video and try to solve this problem yourself, or at least you can try to figure out how you’d solve it if there were no traitors.
 
-        # There are several approaches you can have. In fact, we will solve the problem twice in this video. First, we will solve it similarly to how large databases are solving the problem in practice. Then, we will solve it again using the tricks from cryptocurrency protocols.  
+        # There are several approaches you can have. In fact, we will solve the problem twice in this video. First, we will solve it similarly to how large databases are solving the problem in practice. Then, we will solve it again using the tricks from cryptocurrency protocols.
 
         self.play(
             *[FadeOut(m) for m in self.mobjects]
@@ -825,7 +825,7 @@ class Setup2(Scene):
         )
 
 
-       
+
 class Solution1(Scene):
     def construct(self):
         # create a game with no traitors
@@ -841,12 +841,12 @@ class Solution1(Scene):
             )
         self.wait()
         # Solution 2
-        # So this was the first approach. Here is a different approach. As part of our protocol, we could make one general the leader. Then, everybody sends their token to the leader, the leader decides on the answer, let’s say by choosing the majority opinion, and sends the answer back to the rest. 
+        # So this was the first approach. Here is a different approach. As part of our protocol, we could make one general the leader. Then, everybody sends their token to the leader, the leader decides on the answer, let’s say by choosing the majority opinion, and sends the answer back to the rest.
 
         game.leader_algorithm(self, 1)
         self.wait()
 
-        # This protocol surely works if there are no traitors, but if we are unlucky and choose a traitor as the leader, he gets a complete control over the output of honest generals, a spectacular failure! 
+        # This protocol surely works if there are no traitors, but if we are unlucky and choose a traitor as the leader, he gets a complete control over the output of honest generals, a spectacular failure!
 
         for i in TRAITOR_IDS3:
             game.change_general(self, i, CyclicOpinionTraitor(''.join(random.choice(['Y', 'N']) for _ in range(12))))
@@ -856,7 +856,7 @@ class Solution1(Scene):
 
         # [ukáže se jak traitor dostane korunku a pak pošle někomu YES a někomu NO]
 
-        # But let’s look on the bright side! If we could somehow ensure that the leader is honest, this protocol would work really well. 
+        # But let’s look on the bright side! If we could somehow ensure that the leader is honest, this protocol would work really well.
 
         # change opinions back
         for i in range(len(game.generals)):
@@ -866,12 +866,12 @@ class Solution1(Scene):
                 )
         self.wait()
 
-        # Notice that the output of the protocol is not necessarily the majority opinion of honest generals, because the traitors also get to vote, 
+        # Notice that the output of the protocol is not necessarily the majority opinion of honest generals, because the traitors also get to vote,
 
         game.leader_algorithm(self, 2)
-        self.wait()            
+        self.wait()
 
-        # but fortunately, we only want to ensure this weaker condition, which is satisfied. 
+        # but fortunately, we only want to ensure this weaker condition, which is satisfied.
         # shift the game to the left, then reveal explanations
 
         self.play(
@@ -884,11 +884,11 @@ class Solution1(Scene):
         )
         self.wait(5)
 
- 
+
 class Solution2(Scene):
     def construct(self):
-        # So, how can we approach the problem? Well, let’s first see how we could solve it if there were no traitors at all and understand how those approaches fail. 
-        
+        # So, how can we approach the problem? Well, let’s first see how we could solve it if there were no traitors at all and understand how those approaches fail.
+
         # create a game with no traitors
         game = GameState([Player() for i in range(len(SAMPLE_OPINIONS2))])
         self.play(
@@ -900,17 +900,17 @@ class Solution2(Scene):
             game.generals[i].change_opinion(SAMPLE_OPINIONS2[i])
         self.wait()
 
-        # Without traitors, there are two pretty simple protocols. Let’s look at them. In the first protocol, everybody simply sends their opinion to everybody else, including themselves. 
+        # Without traitors, there are two pretty simple protocols. Let’s look at them. In the first protocol, everybody simply sends their opinion to everybody else, including themselves.
 
         # [animace máme kroužek 12 lidí, animace toho jak si pošlou všichni mezi sebou token s YES/NO – tohle je brutálně hodně animací, dá se to udělat jinak? Kdo ví, možná to bude vypadat hezky? ]
 
-        # Then, each general outputs the majority opinion among the messages he received. 
+        # Then, each general outputs the majority opinion among the messages he received.
 
         # [představuju si, že tokeny u každého generála skončí na kopičkách]
 
 
 
-        # If there’s a tie, let’s say he outputs YES. In this example, everybody got 7 YES messages and 5 NO messages, so everybody agrees on YES. 
+        # If there’s a tie, let’s say he outputs YES. In this example, everybody got 7 YES messages and 5 NO messages, so everybody agrees on YES.
 
         game.majority_algorithm(self)
         self.wait()
@@ -931,11 +931,11 @@ class Solution2(Scene):
                     FadeOut(game.generals[i]),
                     FadeIn(game_with_traitors.generals[i]),
                 )
-        self.wait()        
+        self.wait()
         self.remove(game)
         game = game_with_traitors
 
-        # Well, imagine that the honest generals start with 5 YES opinions and 5 NO opinions. Honest generals follow the protocol and send their opinion to everybody else. 
+        # Well, imagine that the honest generals start with 5 YES opinions and 5 NO opinions. Honest generals follow the protocol and send their opinion to everybody else.
 
         # highlight 5 Y, then 5 N opinions
         for l in ["Y", "N"]:
@@ -944,13 +944,13 @@ class Solution2(Scene):
             )
             self.wait()
 
-        # Now the traitors can send 2 YES messages to some generals and 2 NO messages to some other generals. 
-        
+        # Now the traitors can send 2 YES messages to some generals and 2 NO messages to some other generals.
+
 
         game.majority_algorithm(self)
-    
+
         # [ukáže se jak traitoři pošlou nejdřív YES tokeny některým, pak NO tokeny zbylým (sobě traitoři nepošlou nic)]
-        # This leads to some generals outputting YES, and some generals outputting NO. So, this simple protocol fails. 
+        # This leads to some generals outputting YES, and some generals outputting NO. So, this simple protocol fails.
 
         # highlight generals with output Y, then N
         for l in ["Y", "N"]:
@@ -960,7 +960,7 @@ class Solution2(Scene):
             self.wait()
 
         # [obtáhnou se ti co outputnou YES, je vidět že jejich YES kopička je větší než NO kopička, pak to samé s NO]
-        # But let’s look on the bright side – the protocol only fails if the initial opinion of the honest generals was roughly split. If at least 7 honest generals start with the YES opinion, then this protocol works well. 
+        # But let’s look on the bright side – the protocol only fails if the initial opinion of the honest generals was roughly split. If at least 7 honest generals start with the YES opinion, then this protocol works well.
 
         for i in range(len(game.generals)):
             if i not in TRAITOR_IDS2:
@@ -981,15 +981,15 @@ class Solution2(Scene):
                 )
                 num += 1
         self.wait()
-        
+
         # fadeout numbers
         self.play(
             *[FadeOut(n) for n in numbers]
         )
         self.wait()
 
-        # In that case, whatever the traitors do, every honest general ends up with at least 7 YES opinions, which is enough to make him output YES. Similarly, the protocol works if at least 7 honest generals start with the NO opinion. 
-        # [traitoři něco udělají, je pak vidět jak honest generálové skončili s 7 YES/5 NO,  8 YES/4 NO,  9 YES/3 NO, a všichni odpověděli YES] 
+        # In that case, whatever the traitors do, every honest general ends up with at least 7 YES opinions, which is enough to make him output YES. Similarly, the protocol works if at least 7 honest generals start with the NO opinion.
+        # [traitoři něco udělají, je pak vidět jak honest generálové skončili s 7 YES/5 NO,  8 YES/4 NO,  9 YES/3 NO, a všichni odpověděli YES]
 
         game.majority_algorithm(self)
         self.wait()
@@ -997,8 +997,8 @@ class Solution2(Scene):
 
 class SolutionCombine1(Scene):
     def construct(self):
-        # So let’s now take a step back and see where we stand. We have two approaches to the problem. Both of them ultimately failed, but both of them also work well in some interesting situations. 
-        
+        # So let’s now take a step back and see where we stand. We have two approaches to the problem. Both of them ultimately failed, but both of them also work well in some interesting situations.
+
         sc = 0.7
         shft = 3
         games = [
@@ -1017,23 +1017,23 @@ class SolutionCombine1(Scene):
             *[FadeIn(titles[i]) for i in range(2)],
         )
         self.wait()
-        
-        # The first protocol works if the selected leader happens to be honest. 
+
+        # The first protocol works if the selected leader happens to be honest.
 
         self.play(
             FadeIn(comments[0])
         )
         self.wait()
         games[0].leader_algorithm(self, 0)
-        self.wait()  
-        
-        # The second protocol works if the initial opinions of honest generals are already skewed heavily in favor of one of the opinions. 
+        self.wait()
+
+        # The second protocol works if the initial opinions of honest generals are already skewed heavily in favor of one of the opinions.
         self.play(
             FadeIn(comments[1])
         )
         self.wait()
         games[1].majority_algorithm(self)
-        self.wait()  
+        self.wait()
 
         # Let’s try to combine the strengths of the two protocols into a new one that always works!
         self.play(
@@ -1048,7 +1048,7 @@ class SolutionCombine2(Scene):
         game = GameState([(CyclicOpinionTraitor(''.join(random.choice(['Y', 'N']) for _ in range(12))) if i in TRAITOR_IDS4 else Player(opinion=SAMPLE_OPINIONS4[i])) for i in range(len(SAMPLE_OPINIONS3))])
         self.add(game)
 
-        # Let’s start by looking at the first protocol. How can we deal with the fact that the leader can be a traitor? Well, we know that there are at most 2 traitors, so we could try to run the protocol three times in a row, with three different leaders. We know that at least once the leader is going to be honest. 
+        # Let’s start by looking at the first protocol. How can we deal with the fact that the leader can be a traitor? Well, we know that there are at most 2 traitors, so we could try to run the protocol three times in a row, with three different leaders. We know that at least once the leader is going to be honest.
 
         crowns = [Crown(parent = game.generals[i].icon) for i in range(3)]
         crown = crowns[0]
@@ -1072,17 +1072,17 @@ class SolutionCombine2(Scene):
         self.wait()
         # [u prvního generála se objeví korunka, možná vedle ní něco jako “Phase 1”, pak se posune k druhému generálovi, pak k třetímu “at least once the leader…” -> první a třetí generál jsou řekněme traitoři, highlightujeme toho druhého který je honest]
 
-        # Here is how that would work in detail. Each time, every general sends his current opinion to the leader and then gets a new opinion back. This new opinion is the general’s starting opinion for the next phase. We repeat this three times with three different leaders and the final opinion is the output of every general. 
+        # Here is how that would work in detail. Each time, every general sends his current opinion to the leader and then gets a new opinion back. This new opinion is the general’s starting opinion for the next phase. We repeat this three times with three different leaders and the final opinion is the output of every general.
 
         for i in range(3):
             game.leader_algorithm(self, i)
             self.wait()
 
         # [
-        # provede se algoritmus – třikrát se zopakuje předchozí leader algoritmus. Řekněme že všichni tři generálové jsou honest? 
+        # provede se algoritmus – třikrát se zopakuje předchozí leader algoritmus. Řekněme že všichni tři generálové jsou honest?
         # ]
 
-        # This protocol still does not work. For example, even if the first two leaders are honest and generals reach consensus, the last leader may be a traitor. He can then break the synchrony again by sending the generals some random junk. 
+        # This protocol still does not work. For example, even if the first two leaders are honest and generals reach consensus, the last leader may be a traitor. He can then break the synchrony again by sending the generals some random junk.
 
         # [animace obojího]
 
@@ -1105,14 +1105,14 @@ class SolutionCombine2(Scene):
             *[FadeOut(lock) for lock in locks]
         )
         self.wait()
-        
+
 
 class SolutionCombine3(Scene):
     def construct(self):
         game = GameState([(CyclicOpinionTraitor(''.join(random.choice(['Y', 'N']) for _ in range(12))) if i in TRAITOR_IDS4 else Player(opinion="Y")) for i in range(len(SAMPLE_OPINIONS4))])
         self.add(game)
 
-        #We can do this with the help of our second protocol where everybody sends a token to everybody – in the case where all the generals agree on the same value, we will use this protocol to ensure that honest generals ignore the leader’s proposal and keep their initial opinion. 
+        #We can do this with the help of our second protocol where everybody sends a token to everybody – in the case where all the generals agree on the same value, we will use this protocol to ensure that honest generals ignore the leader’s proposal and keep their initial opinion.
 
         # run majority algo
         game.majority_algorithm(self)
@@ -1120,8 +1120,8 @@ class SolutionCombine3(Scene):
 
         # [není mi jasné]
 
-        # Here’s how we can do that concretely. In each of the three phases, we run both algorithms. 
-        # So: first, every general sends his opinion to everybody. This allows everybody to compute what we’ll call the majority opinion. Then, the leader of that phase sends his majority opinion back to everybody as the leader’s opinion. 
+        # Here’s how we can do that concretely. In each of the three phases, we run both algorithms.
+        # So: first, every general sends his opinion to everybody. This allows everybody to compute what we’ll call the majority opinion. Then, the leader of that phase sends his majority opinion back to everybody as the leader’s opinion.
 
         for i in range(len(game.generals)):
             if i not in TRAITOR_IDS4:
@@ -1148,13 +1148,13 @@ class SolutionCombine3(Scene):
 
         # [provedou se obě animace co už známe]
 
-        # So, every general has two proposals for his new opinion: the majority opinion and the leader’s opinion; which one of the two should he choose as the new opinion? 
+        # So, every general has two proposals for his new opinion: the majority opinion and the leader’s opinion; which one of the two should he choose as the new opinion?
 
         # [tohle bude brutal na animace, není mi jasné]
 
-        # Before we answer that question, let me write a short pseudocode of our algorithm as it’s no longer that simple. So, each general starts with an opinion. Then, there are three phases. In each phase, the general sends his current opinion to everybody. The leader computes the majority opinion he got and sends it back to everybody. 
-        # Each general also locally computes the majority opinion. 
-        # Then, he chooses either the majority opinion or the leader’s opinion as his new opinion and the question is which one to choose. 
+        # Before we answer that question, let me write a short pseudocode of our algorithm as it’s no longer that simple. So, each general starts with an opinion. Then, there are three phases. In each phase, the general sends his current opinion to everybody. The leader computes the majority opinion he got and sends it back to everybody.
+        # Each general also locally computes the majority opinion.
+        # Then, he chooses either the majority opinion or the leader’s opinion as his new opinion and the question is which one to choose.
 
         # [
 
@@ -1174,9 +1174,9 @@ class SolutionCombine3(Scene):
 
         # ]
 
-        # The right choice is that whenever a general gets at least 10 YES tokens from other generals, he chooses the majority opinion, and the same for at least 10 NO tokens. This is because whenever all honest generals already agree on the same value, we know that each general receives at least 10 YES or 10 NO tokens. So, this is the case when we want to disregard the leader and just go with the majority. 
+        # The right choice is that whenever a general gets at least 10 YES tokens from other generals, he chooses the majority opinion, and the same for at least 10 NO tokens. This is because whenever all honest generals already agree on the same value, we know that each general receives at least 10 YES or 10 NO tokens. So, this is the case when we want to disregard the leader and just go with the majority.
 
-        # And this is our final algorithm! 
+        # And this is our final algorithm!
 
 class SolutionCombine3(Scene):
     def construct(self):

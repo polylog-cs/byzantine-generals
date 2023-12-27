@@ -119,7 +119,7 @@ def clipart_yes_no_maybe(which: ["yes", "no", "maybe"], height = 1):
     ]
 
     color = ""
-    
+
     if which == "yes":
         color = GREEN
         clipart = Polygon(
@@ -145,7 +145,7 @@ def clipart_yes_no_maybe(which: ["yes", "no", "maybe"], height = 1):
         ).scale_to_fit_height(
             height/2
         )
-    
+
     if which == "maybe":
         color = ORANGE
         clipart = Polygon(
@@ -165,7 +165,7 @@ def clipart_yes_no_maybe(which: ["yes", "no", "maybe"], height = 1):
             fill_opacity = 1,
         ).next_to(clipart, DOWN, buff = height/20)
         Group(clipart, small_circle).move_to(ORIGIN)
-    
+
 
     circle = Circle(
         radius = height/2,
@@ -215,7 +215,7 @@ def clipart_house(color = RED, height = 1, z_index = 100):
         height
     )
 
-    return house   
+    return house
 
 def clipart_icon(color = BLUE, height = 1, z_index = 100):
     pnts = [

@@ -54,9 +54,9 @@ def color_from_potential(weight, pot_dif):
     weight = 0.5
     if pot_dif > 0:
         pot_dif_cropped = min(pot_dif, weight)
-        return mcolors.to_hex(  
-                (pot_dif_cropped / weight ) * np.array(mcolors.to_rgb(RED)) 
-                + ( 1.0 - pot_dif_cropped / weight) * np.array(mcolors.to_rgb(GRAY)) 
+        return mcolors.to_hex(
+                (pot_dif_cropped / weight ) * np.array(mcolors.to_rgb(RED))
+                + ( 1.0 - pot_dif_cropped / weight) * np.array(mcolors.to_rgb(GRAY))
             )
     else:
         pot_dif_cropped = min(-pot_dif, weight)
@@ -82,7 +82,7 @@ class CustomGraph(Graph):
     vertex_potentials = {} # vertex -> ValueTracker
     vertex_height_lines = {} # vertex -> Line
     directed = True
-    
+
     def make_directed(self, directed):
         self.directed = directed
 
@@ -122,7 +122,7 @@ class CustomGraph(Graph):
 
     def create_edge_length(self, edge, weight, offset = 0*RIGHT):
         number = DecimalNumber(
-            weight, 
+            weight,
             num_decimal_places=1,
             color = GRAY
         ).scale(0.3)
@@ -204,7 +204,7 @@ class CustomGraph(Graph):
             )
 
         for edge in self.edges:
-            
+
 
             def edge_arrow_potential_updater(mob, edge):
                 u = edge[0]
@@ -221,7 +221,7 @@ class CustomGraph(Graph):
                 lambda mob, dt, edge = edge: edge_arrow_potential_updater(mob, edge)
             )
 
-	
+
 
     def gen_zero_potentials(self):
         pots = {}
@@ -257,9 +257,9 @@ class CustomGraph(Graph):
                 start += dir * np.sqrt(u_radius ** 2 - np.linalg.norm(offset) ** 2)
             if np.linalg.norm(offset) < v_radius:
                 end -= dir * np.sqrt(v_radius ** 2 - np.linalg.norm(offset) ** 2)
-                
+
             return (start, end)
-            
+
         start_pos, end_pos = compute_positions(u, v, offset)
 
         edge = Arrow(
@@ -301,7 +301,7 @@ class CustomGraph(Graph):
         G = self.get_adjacency_list()
         q = PriorityQueue()
         q.put((0, start_node, -1))
-        
+
         distances = {}
         predecessors = {}
 
@@ -315,20 +315,20 @@ class CustomGraph(Graph):
                 predecessors[node] = predecessor
 
                 node_anims.append((dist, node))
-                
+
 
                 for neighbor in G[node]:
                     if not neighbor in distances:
                         edge = (node, neighbor)
-                        
+
                         new_dist = dist + self.edge_weights_vals[edge].get_value() + self.vertex_potentials[neighbor].get_value() - self.vertex_potentials[node].get_value()
                         q.put((new_dist, neighbor, node))
 
                         mover_anims.append(
                             (
-                                self.vertices[node].get_center(), 
-                                self.vertices[neighbor].get_center(), 
-                                dist, 
+                                self.vertices[node].get_center(),
+                                self.vertices[neighbor].get_center(),
+                                dist,
                                 dist + self.edge_weights_vals[edge].get_value() + self.vertex_potentials[neighbor].get_value() - self.vertex_potentials[node].get_value(),
                                 node,
                                 neighbor
@@ -381,17 +381,17 @@ class CustomGraph(Graph):
                 Succession(
                     Wait(start_time * speed),
                     AnimationGroup(
-                        Create(line, rate_func = linear), 
+                        Create(line, rate_func = linear),
                         run_time = ( end_time - start_time ) * speed,
                     )
                 )
             )
             #print(node, neighbor, start_time, end_time)
             all_lines[(node, neighbor)] = line
-        
+
         # all_anims.append(Flash(self.vertices[PRAGUE], color = RED))
         # all_anims.append(Succession(Wait(distances[ROME] * speed), Flash(self.vertices[ROME], color = RED)))
-        
+
 
         return (
             AnimationGroup(*all_anims),
@@ -401,5 +401,3 @@ class CustomGraph(Graph):
             distances,
             red_nodes
         )
-        
-
