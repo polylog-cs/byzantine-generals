@@ -206,7 +206,7 @@ class BlockchainGroupChat(Scene):
         self.play(FadeIn(*players), *animations)
 
         self.wait(1)
-        players[0].make_leader(self)
+        self.play(players[0].make_leader())
 
         messages_to_add = [
             ChatMessage("General #1", "Livvy rizzed up baby Gronk", tail_up=True)
@@ -227,7 +227,6 @@ class BlockchainGroupChat(Scene):
                 keep_original=False,
             )
         )
-
         self.wait(1)
 
         # Copy the new messages from the leader to the other players
@@ -240,5 +239,7 @@ class BlockchainGroupChat(Scene):
                 lag_ratio=0.5,
             )
         )
+        self.wait(1)
 
+        self.play(players[1].make_leader(generals=players))
         self.wait(1)

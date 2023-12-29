@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import List
+from typing import List, Optional
 
 from manim import *
 
@@ -152,18 +152,43 @@ class CodeWithStepping(Code):
 class General(Group):
     def __init__(self):
         super().__init__()
-        self.is_leader = False
+        self.crown = None
 
-    def make_leader(self, scene: Scene):
-        assert not self.is_leader
-        self.is_leader = True
-        self.crown = Crown(self.icon)
-        scene.play(FadeIn(self.crown))
+    def is_leader(self) -> bool:
+        return self.crown is not None
 
-    def remove_leader(self, scene: Scene):
-        assert self.is_leader
-        self.is_leader = False
-        scene.play(FadeOut(self.crown))
+    def make_leader(self, generals: Optional[list["General"]] = None) -> Animation:
+        """Pass the crown to this general.
+
+        If `generals` is given, moves the crown visually from the current leader
+        in `generals` to this general.
+        """
+        assert not self.is_leader()
+
+        current_leader = None
+
+        if generals:
+            for g in generals:
+                if g.is_leader():
+                    current_leader = g
+                    break
+
+        if current_leader is not None:
+            old_crown = current_leader.crown
+            self.crown = old_crown
+            current_leader.crown = None
+            return old_crown.animate.move_to(self, aligned_edge=UP).shift(UP * 0.3)
+        else:
+            # No other generals given. Simply become the leader.
+            self.crown = Crown(self.icon).move_to(self, aligned_edge=UP).shift(UP * 0.3)
+            return FadeIn(self.crown)
+
+    def remove_leader(self) -> Animation:
+        assert self.is_leader()
+
+        crown = self.crown
+        self.crown = None
+        return FadeOut(crown)
 
     def add_receive_buffer(self, buffer: MessageBuffer):
         self.receive_buffer = buffer
@@ -567,7 +592,7 @@ class GameState(Group):
         scene.remove(*opinions, *new_icons)
 
     def leader_algorithm(self, scene: Scene, leader_id: int, send_to_self: bool = True):
-        self.generals[leader_id].make_leader(scene)
+        scene.play(self.generals[leader_id].make_leader())
 
         scene.wait(0.5)
 
@@ -589,7 +614,7 @@ class GameState(Group):
             msgs,
         )
 
-        self.generals[leader_id].remove_leader(scene)
+        scene.play(self.generals[leader_id].remove_leader())
 
     def majority_algorithm(self, scene: Scene, send_to_self: bool = True):
         for i in range(len(self.generals)):
@@ -616,7 +641,7 @@ class GameState(Group):
     ):
         for leader_id in leader_ids:
             code.highlight_line(0, scene)
-            self.generals[leader_id].make_leader(scene)
+            scene.play(self.generals[leader_id].make_leader(self.generals))
             code.highlight_line(1, scene)
             for i in range(len(self.generals)):
                 self.broadcast_opinion(
@@ -645,8 +670,6 @@ class GameState(Group):
             code.highlight_line(5, scene)
             for i in range(len(self.generals)):
                 g = self.generals[i]
-                if not g.is_traitor and not g.is_leader:
+                if not g.is_traitor and not g.is_leader():
                     new_opinion = g.update_opinion_to_supermajority_or_leader(scene)
                     self.update_general_opinions(scene, [i], [new_opinion])
-
-            self.generals[leader_id].remove_leader(scene)
