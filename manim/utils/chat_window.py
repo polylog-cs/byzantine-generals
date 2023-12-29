@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from manim import *
 
@@ -91,8 +91,12 @@ class ChatWindow(VGroup):
         ]
         self.senders = []
 
-        self.displayed_messages = VGroup()
-        self.add(self.displayed_messages)
+        self.messages_group = VGroup()
+        self.add(self.messages_group)
+
+        # Includes even the ones that aren't displayed at the moment.
+        self.all_messages = []
+
         self.window = Rectangle(
             height=height,
             width=width,
@@ -116,9 +120,9 @@ class ChatWindow(VGroup):
         # Format the message as "sender: message"
 
         # Position for the new message
-        if self.displayed_messages:
+        if self.messages_group:
             position = (
-                self.displayed_messages[-1].get_corner(DOWN + LEFT)
+                self.all_messages[-1].get_corner(DOWN + LEFT)
                 + DOWN * 0.9 * self.messages_scale
             )
         else:
@@ -140,13 +144,42 @@ class ChatWindow(VGroup):
             .move_to(position, aligned_edge=LEFT)
         )
 
+        self.all_messages.append(message_obj)
+
         if action == "animate":
             animation = FadeIn(message_obj, run_time=0.5)
             return AnimationGroup(animation)
         elif action == "add":
-            self.displayed_messages.add(message_obj)
+            self.messages_group.add(message_obj)
             return message_obj
         elif action == "nothing":
             return message_obj
         else:
             raise ValueError(f"Invalid action {action}")
+
+    def copy_messages(
+        self,
+        messages: list[ChatMessage],
+        background_color: Optional[ParsableManimColor] = None,
+        keep_original: bool = True,
+    ):
+        """Copies the given messages to the chat window."""
+        animations = []
+        new_messages = []
+        for message in messages:
+            new_background_color = background_color or message.background_color
+            new_messages.append(
+                self.add_message(
+                    message.sender,
+                    message.message,
+                    background_color=new_background_color,
+                    action="nothing",
+                )
+            )
+            if keep_original:
+                message = message.copy()
+            animations.append(message.animate.become(new_messages[-1]))
+            # .become() doesn't update this custom property, so we do it manually.
+            message.background_color = new_background_color
+
+        return AnimationGroup(*animations)

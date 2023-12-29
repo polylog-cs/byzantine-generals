@@ -220,18 +220,25 @@ class BlockchainGroupChat(Scene):
         for message in messages_to_add:
             self.play(FadeIn(message))
 
-            last_message = players[0].chat_window.add_message(
-                message.sender,
-                message.message,
-                action="nothing",
+        self.play(
+            players[0].chat_window.copy_messages(
+                messages_to_add,
                 background_color=util_general.BASE01,
+                keep_original=False,
             )
+        )
 
-            self.play(message.animate.become(last_message))
+        self.wait(1)
 
-            # Since we created `last_message` but didn't actually add it to the group,
-            # add it manually here. This is needed so that the next message is put
-            # under this one etc.
-            players[0].chat_window.displayed_messages.add(message)
+        # Copy the new messages from the leader to the other players
+        self.play(
+            LaggedStart(
+                *[
+                    players[i].chat_window.copy_messages(messages_to_add)
+                    for i in [1, 2, 3]
+                ],
+                lag_ratio=0.5,
+            )
+        )
 
         self.wait(1)
