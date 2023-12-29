@@ -39,12 +39,13 @@ def disable_rich_logging():
     ANSI_DARK_GRAY = "\033[1;30m"
     ANSI_END = "\033[0m"
 
+    # Add a new handler with a given format. Note that the removal above is still needed
+    # because otherwise we get two copies of the same log messages.
     logging.basicConfig(
         format=f"{ANSI_DARK_GRAY}%(asctime)s %(levelname)s{ANSI_END} %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[logging.StreamHandler(sys.stdout)],
     )
-
-    manim.logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
 ############### GENERATING SOUNDS
