@@ -1,4 +1,5 @@
 import collections
+from typing import Optional
 
 import numpy as np
 from manim import *
@@ -154,7 +155,7 @@ class NetworkMessagesWithFires(Scene):
 class BlockchainPlayer(Player):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, with_icon=True, **kwargs)
-        self.chat_window = None
+        self.chat_window: Optional[ChatWindow] = None
 
     def set_chat_window(self, chat_window: ChatWindow):
         if self.chat_window is not None:
@@ -205,42 +206,103 @@ class BlockchainGroupChat(Scene):
 
         self.remove(chat)
         self.play(FadeIn(*players), *animations)
-
         self.wait(1)
-        self.play(players[0].make_leader())
 
-        messages_to_add = [
-            ChatMessage("General #1", "Livvy rizzed up baby Gronk", tail_up=True)
-            .next_to(players[1], direction=DOWN + RIGHT)
-            .shift(LEFT + UP * 0.1),
-            ChatMessage("General #2", "He might be the new rizz king")
-            .next_to(players[2], direction=UP + RIGHT)
-            .shift(LEFT),
+        def make_message_from_general(general_id: int, message: str):
+            assert general_id in [0, 1, 2, 3]
+            general_data = [
+                {
+                    "tail_up": True,
+                    "next_to_direction": DOWN + RIGHT,
+                    "shift": LEFT * 0.8 + UP * 0.4,
+                },
+                {
+                    "tail_up": True,
+                    "next_to_direction": DOWN + RIGHT,
+                    "shift": LEFT * 0.8 + UP * 0.4,
+                },
+                {
+                    "tail_up": False,
+                    "next_to_direction": UP + RIGHT,
+                    "shift": LEFT * 0.8,
+                },
+                {
+                    "tail_up": False,
+                    "next_to_direction": UP + RIGHT,
+                    "shift": LEFT * 0.8,
+                },
+            ][general_id]
+
+            message = ChatMessage(
+                f"General #{general_id+1}",
+                message,
+                tail_up=general_id in [0, 1],
+            )
+            message.next_to(
+                players[general_id], direction=general_data["next_to_direction"]
+            ).shift(general_data["shift"])
+
+            return message
+
+        messages_per_round = [
+            [
+                make_message_from_general(1, "Livvy rizzed up baby Gronk"),
+                make_message_from_general(2, "He might be the new rizz king"),
+            ],
+            # Different #messages in each round to show that it doesn't always have
+            # to be a fixed number (do we want this?)
+            [
+                make_message_from_general(1, "Foo"),
+                make_message_from_general(3, "Bar"),
+                make_message_from_general(0, "Baz"),
+            ],
+            [
+                make_message_from_general(1, "Quux"),
+            ],
         ]
 
-        for message in messages_to_add:
-            self.play(FadeIn(message))
+        for leader_id, messages_to_add in zip(range(3), messages_per_round):
+            self.play(players[leader_id].make_leader(generals=players))
 
-        self.play(
-            players[0].chat_window.copy_messages(
-                messages_to_add,
-                background_color=util_general.BASE01,
-                keep_original=False,
+            for message in messages_to_add:
+                self.play(FadeIn(message))
+
+            self.play(
+                players[leader_id].chat_window.copy_messages(
+                    messages_to_add,
+                    background_color=util_general.BASE01,
+                    keep_original=False,
+                )
             )
-        )
-        self.wait(1)
+            self.wait(1)
 
-        # Copy the new messages from the leader to the other players
-        self.play(
-            LaggedStart(
-                *[
-                    players[i].chat_window.copy_messages(messages_to_add)
-                    for i in [1, 2, 3]
-                ],
-                lag_ratio=0.5,
+            # Copy the new messages from the leader to the other players
+            self.play(
+                LaggedStart(
+                    *[
+                        players[i].chat_window.copy_messages(
+                            messages_to_add, keep_original=True
+                        )
+                        for i in range(4)
+                        if i != leader_id
+                    ],
+                    lag_ratio=0.5,
+                )
             )
-        )
-        self.wait(1)
 
-        self.play(players[1].make_leader(generals=players))
-        self.wait(1)
+            # Set the background colors of the newly-added messages back to the standard one
+            color_change_animations = []
+            for player_id in range(len(players)):
+                for i in range(len(messages_to_add)):
+                    # I tried wrapping this into a method of ChatMessage but that lead to the
+                    # message's text disappearing behind the bubble... why??
+                    message = players[player_id].chat_window.all_messages[-i - 1]
+                    color_change_animations.append(
+                        message.bubble.animate.set_fill_color(util_general.BASE02)
+                    )
+                    color_change_animations.append(
+                        message.tail.animate.set_fill_color(util_general.BASE02)
+                    )
+
+            self.play(*color_change_animations)
+            self.wait(1)

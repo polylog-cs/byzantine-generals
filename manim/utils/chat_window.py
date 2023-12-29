@@ -71,6 +71,9 @@ class ChatMessage(VGroup):
         )
         self.add(self.tail)
 
+    def __repr__(self):
+        return f"ChatMessage({self.sender}, {self.message})"
+
 
 class ChatWindow(VGroup):
     def __init__(self, width=6, height=4, **kwargs):
@@ -204,6 +207,15 @@ class ChatWindow(VGroup):
                 if keep_original:
                     message_from = message_from.copy()
                 animations.append(message_from.animate.become(message_to))
+
+                # At this point, `message_to` is not actually displayed because it's not added
+                # to any Manim group. Then using .become() we move `message_from` to the position
+                # of the invisible `message_to`. Replace self.all_messages[i] with `message_from`
+                # so that we use that in subsequent animations.
+                # Otherwise, if we do copy_messages() again, we will .shift() the invisible
+                # message, causing weird behavior.
+                self.all_messages[i] = message_from
+
                 # .become() doesn't update this custom property, so we do it manually.
                 message_from.background_color = new_background_color
 
