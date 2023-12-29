@@ -166,9 +166,10 @@ class BlockchainPlayer(Player):
 
 class BlockchainGroupChat(Scene):
     def construct(self):
-        coef = 2.6
+        coef = 2.3
         player_locations = [
-            (x * coef - 3, y * coef) for x, y in [(-1, 1), (1, 1), (1, -1), (-1, -1)]
+            (x * coef - 3, y * coef - 0.5)
+            for x, y in [(-1, 1), (1, 1), (1, -1), (-1, -1)]
         ]
 
         message_pairs = [
@@ -211,7 +212,7 @@ class BlockchainGroupChat(Scene):
         messages_to_add = [
             ChatMessage("General #1", "Livvy rizzed up baby Gronk", tail_up=True)
             .next_to(players[1], direction=DOWN + RIGHT)
-            .shift(LEFT),
+            .shift(LEFT + UP * 0.1),
             ChatMessage("General #2", "He might be the new rizz king")
             .next_to(players[2], direction=UP + RIGHT)
             .shift(LEFT),

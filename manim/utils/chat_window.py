@@ -95,7 +95,7 @@ class ChatWindow(VGroup):
         self.add(self.messages_group)
 
         # Includes even the ones that aren't displayed at the moment.
-        self.all_messages = []
+        self.all_messages: list[ChatMessage] = []
 
         self.window = Rectangle(
             height=height,
@@ -159,27 +159,52 @@ class ChatWindow(VGroup):
 
     def copy_messages(
         self,
-        messages: list[ChatMessage],
+        messages_from: list[ChatMessage],
         background_color: Optional[ParsableManimColor] = None,
         keep_original: bool = True,
     ):
         """Copies the given messages to the chat window."""
         animations = []
         new_messages = []
-        for message in messages:
-            new_background_color = background_color or message.background_color
+
+        n_previous_messages = len(self.all_messages)
+
+        for message_from in messages_from:
+            new_background_color = background_color or message_from.background_color
             new_messages.append(
                 self.add_message(
-                    message.sender,
-                    message.message,
+                    message_from.sender,
+                    message_from.message,
                     background_color=new_background_color,
                     action="nothing",
                 )
             )
-            if keep_original:
-                message = message.copy()
-            animations.append(message.animate.become(new_messages[-1]))
-            # .become() doesn't update this custom property, so we do it manually.
-            message.background_color = new_background_color
+
+        previous_bottom = self.all_messages[n_previous_messages - 1].get_corner(
+            DOWN + LEFT
+        )
+        new_bottom = new_messages[-1].get_corner(DOWN + LEFT)
+        shift = previous_bottom - new_bottom
+
+        for i, message_to in enumerate(self.all_messages):
+            if i < n_previous_messages:
+                i_reversed = len(self.all_messages) - i - 1
+                fade_strength = 0 if i_reversed < 5 else 1
+
+                animations.append(
+                    message_to.animate.shift(shift).fade_to(
+                        ManimColor(util_general.BASE2), fade_strength
+                    )
+                )
+            else:
+                message_to.shift(shift)
+
+                message_from = messages_from[i - n_previous_messages]
+
+                if keep_original:
+                    message_from = message_from.copy()
+                animations.append(message_from.animate.become(message_to))
+                # .become() doesn't update this custom property, so we do it manually.
+                message_from.background_color = new_background_color
 
         return AnimationGroup(*animations)
