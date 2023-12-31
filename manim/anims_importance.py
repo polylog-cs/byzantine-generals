@@ -6,7 +6,7 @@ from manim import *
 
 from utils import util_general
 from utils.chat_window import ChatMessage, ChatWindow
-from utils.generals import Player
+from utils.generals import Player, Traitor
 
 util_general.disable_rich_logging()
 
@@ -167,6 +167,8 @@ class BlockchainPlayer(Player):
 
 class BlockchainGroupChat(Scene):
     def construct(self):
+        util_general.default()
+
         coef = 2.3
         player_locations = [
             (x * coef - 3, y * coef - 0.5)
@@ -306,3 +308,66 @@ class BlockchainGroupChat(Scene):
 
             self.play(*color_change_animations)
             self.wait(1)
+
+
+class ElectronicSignature(Scene):
+    def construct(self):
+        util_general.default()
+
+        player1 = Player(with_icon=True).shift(LEFT * 4 + UP * 2)
+        player2 = Traitor(with_icon=True).shift(LEFT * 4 + DOWN * 2)
+        self.add(player1, player2)
+
+        message = (
+            ChatMessage(
+                sender="General #1",
+                message="felt cute, might delete later",
+                with_verification=True,
+            )
+            .scale(1.3)
+            .next_to(player1, direction=RIGHT)
+        )
+        # Copy the header but keep the original position so that we can later
+        # .become() it
+        header_group_unmoved = message.header_group.copy()
+        header_group = message.header_group
+        message.text_group.remove(message.header_group)
+
+        header_group.next_to(player1, direction=DOWN)
+        header_group.submobjects[0].set_fill(util_general.BASE00)
+
+        self.play(FadeIn(message))
+        self.play(FadeIn(header_group))
+        self.play(header_group.animate.become(header_group_unmoved))
+
+        self.wait()
+
+        # Traitors can't fake signatures
+
+        message2 = (
+            ChatMessage(
+                sender="General #1",
+                message="I hate spinach",  # TODO: better text?
+                with_verification=True,
+            )
+            .scale(1.3)
+            .next_to(player2, direction=RIGHT)
+        )
+        header_group_unmoved = message2.header_group.copy()
+        header_group = message2.header_group
+        message2.text_group.remove(message2.header_group)
+
+        header_group.next_to(player2, direction=DOWN)
+        header_group.submobjects[0].set_fill(util_general.BASE00)
+
+        self.play(FadeIn(message2))
+        self.play(FadeIn(header_group))
+        self.play(header_group.animate.become(header_group_unmoved))
+
+        self.wait()
+        self.play(Create(Cross(header_group, color=util_general.RED)))
+        self.play(
+            Write(Text("Can't pretend to be somebody else", color=util_general.RED))
+        )
+
+        self.wait()

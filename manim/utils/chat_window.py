@@ -1,9 +1,34 @@
 from typing import Literal, Optional
 
 from manim import *
+from manim.mobject.types.vectorized_mobject import VMobject
 
 from . import util_general
 from .util_general import text_color
+
+
+class CustomSVGMobject(SVGMobject):
+    def interpolate_color(
+        self, mobject1: VMobject, mobject2: VMobject, alpha: float
+    ) -> None:
+        attrs = [
+            "fill_rgbas",
+            "stroke_rgbas",
+            "background_stroke_rgbas",
+            # stroke_width was None, causing trouble in the original SVGMobject class
+            # "stroke_width",
+            "background_stroke_width",
+            "sheen_direction",
+            "sheen_factor",
+        ]
+        for attr in attrs:
+            setattr(
+                self,
+                attr,
+                interpolate(getattr(mobject1, attr), getattr(mobject2, attr), alpha),
+            )
+            if alpha == 1.0:
+                setattr(self, attr, getattr(mobject2, attr))
 
 
 class ChatMessage(VGroup):
@@ -11,10 +36,11 @@ class ChatMessage(VGroup):
         self,
         sender: str,
         message: str,
-        sender_color: ParsableManimColor = util_general.WHITE,
+        sender_color: ParsableManimColor = util_general.BASE00,
         background_color: ParsableManimColor = util_general.BASE02,
         tail_right: bool = False,  # x position of the bubble's tail
         tail_up: bool = False,  # y position of the bubble's tail
+        with_verification: bool = False,
         *args,
         **kwargs,
     ):
@@ -24,15 +50,27 @@ class ChatMessage(VGroup):
         self.message = message
         self.background_color = background_color
 
-        message_text = Text(message, font="Helvetica").scale(0.8)
-        sender_text = Text(sender, color=sender_color, font="Helvetica").scale(0.4)
+        self.message_text = Text(
+            message, font="Helvetica", color=util_general.WHITE
+        ).scale(0.8)
+        self.sender_text = Text(sender, font="Helvetica", color=sender_color).scale(0.4)
 
-        self.text_group = VGroup(sender_text, message_text).arrange_in_grid(
+        self.header_group = VGroup(self.sender_text)
+
+        self.text_group = VGroup(self.header_group, self.message_text).arrange_in_grid(
             rows=2, cols=1, cell_alignment=LEFT, buff=SMALL_BUFF
         )
 
+        self.add_verification()
+        self.text_group.center()
+
         width = self.text_group.width + MED_LARGE_BUFF
         height = self.text_group.height + MED_LARGE_BUFF
+
+        if not with_verification:
+            # By removing after we've computed the width and height, we leave space
+            # for the verification checkmark if we want to re-add it later.
+            self.header_group.remove(self.verification)
 
         self.bubble = RoundedRectangle(
             corner_radius=0.5,
@@ -73,6 +111,14 @@ class ChatMessage(VGroup):
 
     def __repr__(self):
         return f"ChatMessage({self.sender}, {self.message})"
+
+    def add_verification(self):
+        self.verification = CustomSVGMobject("img/Twitter_Verified_Badge.svg").scale(
+            0.15
+        )
+        self.verification.next_to(self.sender_text, RIGHT, buff=SMALL_BUFF)
+        self.header_group.add(self.verification)
+        return self.verification
 
 
 class ChatWindow(VGroup):
