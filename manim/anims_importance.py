@@ -5,6 +5,7 @@ import numpy as np
 from manim import *
 
 from utils import util_general
+from utils.blockchain import BlockchainState
 from utils.chat_window import ChatMessage, ChatWindow
 from utils.generals import Player, Traitor
 
@@ -152,28 +153,9 @@ class NetworkMessagesWithFires(Scene):
         self.wait(1)
 
 
-class BlockchainPlayer(Player):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, with_icon=True, **kwargs)
-        self.chat_window: Optional[ChatWindow] = None
-
-    def set_chat_window(self, chat_window: ChatWindow):
-        if self.chat_window is not None:
-            self.remove(self.chat_window)
-
-        self.chat_window = chat_window
-        self.add(chat_window)
-
-
 class BlockchainGroupChat(Scene):
     def construct(self):
         util_general.default()
-
-        coef = 2.3
-        player_locations = [
-            (x * coef - 3, y * coef - 0.5)
-            for x, y in [(-1, 1), (1, 1), (1, -1), (-1, -1)]
-        ]
 
         message_pairs = [
             ("General #2", "OK guys let’s vote, I vote YES"),
@@ -190,87 +172,37 @@ class BlockchainGroupChat(Scene):
         self.add(chat)
         self.wait(1)
 
-        animations = []
-        players: list[BlockchainPlayer] = []
-
-        for x, y in player_locations:
-            player = BlockchainPlayer().shift(x * RIGHT + y * UP)
-            players.append(player)
-            chat_window = chat.copy()
-            chat_window_scale = 0.3
-            animations.append(
-                chat_window.animate.shift((x + 1.5) * RIGHT + y * UP).scale(
-                    chat_window_scale
-                )
-            )
-            chat_window.messages_scale *= chat_window_scale
-            player.chat_window = chat_window
+        state = BlockchainState(chat)
 
         self.remove(chat)
-        self.play(FadeIn(*players), *animations)
+        self.play(FadeIn(*state.players), *state.creation_animations)
         self.wait(1)
-
-        def make_message_from_general(general_id: int, message: str):
-            assert general_id in [0, 1, 2, 3]
-            general_data = [
-                {
-                    "tail_up": True,
-                    "next_to_direction": DOWN + RIGHT,
-                    "shift": LEFT * 0.8 + UP * 0.4,
-                },
-                {
-                    "tail_up": True,
-                    "next_to_direction": DOWN + RIGHT,
-                    "shift": LEFT * 0.8 + UP * 0.4,
-                },
-                {
-                    "tail_up": False,
-                    "next_to_direction": UP + RIGHT,
-                    "shift": LEFT * 0.8,
-                },
-                {
-                    "tail_up": False,
-                    "next_to_direction": UP + RIGHT,
-                    "shift": LEFT * 0.8,
-                },
-            ][general_id]
-
-            message = ChatMessage(
-                f"General #{general_id+1}",
-                message,
-                tail_up=general_id in [0, 1],
-            )
-            message.next_to(
-                players[general_id], direction=general_data["next_to_direction"]
-            ).shift(general_data["shift"])
-
-            return message
 
         messages_per_round = [
             [
-                make_message_from_general(1, "Livvy rizzed up baby Gronk"),
-                make_message_from_general(2, "He might be the new rizz king"),
+                state.make_message_from_general(1, "Livvy rizzed up baby Gronk"),
+                state.make_message_from_general(2, "He might be the new rizz king"),
             ],
             # Different #messages in each round to show that it doesn't always have
             # to be a fixed number (do we want this?)
             [
-                make_message_from_general(1, "Foo"),
-                make_message_from_general(3, "Bar"),
-                make_message_from_general(0, "Baz"),
+                state.make_message_from_general(1, "Foo"),
+                state.make_message_from_general(3, "Bar"),
+                state.make_message_from_general(0, "Baz"),
             ],
             [
-                make_message_from_general(1, "Quux"),
+                state.make_message_from_general(1, "Quux"),
             ],
         ]
 
         for leader_id, messages_to_add in zip(range(3), messages_per_round):
-            self.play(players[leader_id].make_leader(generals=players))
+            state.make_leader(leader_id, self)
 
             for message in messages_to_add:
                 self.play(FadeIn(message))
 
             self.play(
-                players[leader_id].chat_window.copy_messages(
+                state.players[leader_id].chat_window.copy_messages(
                     messages_to_add,
                     background_color=util_general.BASE01,
                     keep_original=False,
@@ -278,36 +210,7 @@ class BlockchainGroupChat(Scene):
             )
             self.wait(1)
 
-            # Copy the new messages from the leader to the other players
-            self.play(
-                LaggedStart(
-                    *[
-                        players[i].chat_window.copy_messages(
-                            messages_to_add, keep_original=True
-                        )
-                        for i in range(4)
-                        if i != leader_id
-                    ],
-                    lag_ratio=0.5,
-                )
-            )
-
-            # Set the background colors of the newly-added messages back to the standard one
-            color_change_animations = []
-            for player_id in range(len(players)):
-                for i in range(len(messages_to_add)):
-                    # I tried wrapping this into a method of ChatMessage but that lead to the
-                    # message's text disappearing behind the bubble... why??
-                    message = players[player_id].chat_window.all_messages[-i - 1]
-                    color_change_animations.append(
-                        message.bubble.animate.set_fill_color(util_general.BASE02)
-                    )
-                    color_change_animations.append(
-                        message.tail.animate.set_fill_color(util_general.BASE02)
-                    )
-
-            self.play(*color_change_animations)
-            self.wait(1)
+            state.send_block_to_other_players(messages_to_add, self)
 
 
 class ElectronicSignature(Scene):
@@ -329,9 +232,8 @@ class ElectronicSignature(Scene):
         )
         # Copy the header but keep the original position so that we can later
         # .become() it
-        header_group_unmoved = message.header_group.copy()
-        header_group = message.header_group
-        message.text_group.remove(message.header_group)
+        header_group_unmoved = message.pop_header_group()
+        header_group = header_group_unmoved.copy()
 
         header_group.next_to(player1, direction=DOWN)
         header_group.submobjects[0].set_fill(util_general.BASE00)
@@ -371,3 +273,74 @@ class ElectronicSignature(Scene):
         )
 
         self.wait()
+
+
+class TraitorGroupChat(Scene):
+    def construct(self):
+        util_general.default()
+
+        message_pairs = [
+            ("General #2", "OK guys let’s vote, I vote YES"),
+            ("General #4", "sounds good, I vote YES"),
+            ("General #7", "I vote NO"),
+        ]
+
+        chat = ChatWindow()
+
+        for pair in message_pairs:
+            chat.add_message(pair[0], pair[1], action="add")
+
+        self.add(chat)
+        self.wait(1)
+
+        state = BlockchainState(chat)
+
+        self.remove(chat)
+        self.play(FadeIn(*state.players), *state.creation_animations)
+        self.wait(1)
+
+        messages_per_round = [
+            [
+                state.make_message_from_general(
+                    0, "Totally real message", alleged_general_id=1
+                ),
+                state.make_message_from_general(2, "He might be the new rizz king"),
+            ],
+        ]
+
+        # vv: This for loop is unnecessary here, but keeping it now in case
+        # we want more rounds later
+        for leader_id, messages_to_add in enumerate(messages_per_round):
+            state.make_leader(leader_id, self)
+
+            for message in messages_to_add:
+                self.play(FadeIn(message))
+
+            fake_message_header = messages_to_add[0].header_group
+            rectangle = SurroundingRectangle(
+                fake_message_header, color=util_general.RED
+            )
+            self.play(Create(rectangle))
+            self.wait()
+            self.play(Uncreate(rectangle))
+
+            verifications = [message.add_verification() for message in messages_to_add]
+
+            self.play(*[FadeIn(verification) for verification in verifications])
+            self.wait()
+
+            failed_text = Text("Failed verification", color=util_general.RED)
+            failed_text.next_to(messages_to_add[0], direction=DOWN).shift(LEFT)
+
+            self.play(
+                Create(failed_text),
+                verifications[0].animate.set_color(util_general.RED),
+                Create(
+                    Arrow(
+                        failed_text.get_center(),
+                        verifications[0].get_center(),
+                        color=util_general.RED,
+                    )
+                ),
+            )
+            self.wait()

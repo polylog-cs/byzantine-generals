@@ -120,6 +120,11 @@ class ChatMessage(VGroup):
         self.header_group.add(self.verification)
         return self.verification
 
+    def pop_header_group(self):
+        """Remove and return the header group."""
+        self.text_group.remove(self.header_group)
+        return self.header_group
+
 
 class ChatWindow(VGroup):
     def __init__(self, width=6, height=4, **kwargs):
