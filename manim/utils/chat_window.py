@@ -120,6 +120,9 @@ class ChatMessage(VGroup):
         self.header_group.add(self.verification)
         return self.verification
 
+    def has_verification(self):
+        return self.verification in self.header_group
+
     def pop_header_group(self):
         """Remove and return the header group."""
         self.text_group.remove(self.header_group)
@@ -169,6 +172,7 @@ class ChatWindow(VGroup):
         sender: str,
         message: str,
         background_color: ParsableManimColor = util_general.BASE02,
+        with_verification: bool = False,
         action: Literal["animate", "add", "nothing"] = "animate",
     ):
         # Format the message as "sender: message"
@@ -193,6 +197,7 @@ class ChatWindow(VGroup):
                 message,
                 sender_color=sender_color,
                 background_color=background_color,
+                with_verification=with_verification,
             )
             .scale(self.messages_scale)
             .move_to(position, aligned_edge=LEFT)
@@ -229,6 +234,7 @@ class ChatWindow(VGroup):
                 self.add_message(
                     message_from.sender,
                     message_from.message,
+                    with_verification=message_from.has_verification(),
                     background_color=new_background_color,
                     action="nothing",
                 )

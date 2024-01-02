@@ -406,3 +406,27 @@ class OtherLeaderAttacks(Scene):
         copies[1][0].shift(RIGHT * 8)
         self.play(FadeIn(copies[1][0]), FadeOut(copies[1][2]))
         self.wait()
+
+
+class BlockchainForConsensus(Scene):
+    def construct(self):
+        util_general.default()
+
+        message_pairs = [
+            ("General #2", "OK guys let’s vote, I vote YES"),
+            ("General #4", "sounds good, I vote YES"),
+            ("General #7", "I vote NO"),
+            ("General #1", "Ok, so that's 9 votes for YES, let's attack."),
+            ("General #3", "Ok, you got it"),
+            ("General #4", "okok"),
+        ]
+
+        chat = ChatWindow().shift(LEFT * 4 + DOWN * 3)
+
+        for pair in message_pairs:
+            message = ChatMessage(pair[0], pair[1], with_verification=True).shift(
+                DOWN * 3 + RIGHT * 2
+            )
+            self.play(FadeIn(message), run_time=0.5)
+            self.play(chat.copy_messages([message], keep_original=False))
+            chat.messages_group.add(message)
