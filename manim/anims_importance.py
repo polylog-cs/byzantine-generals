@@ -5,7 +5,7 @@ import numpy as np
 from manim import *
 
 from utils import util_general
-from utils.blockchain import BlockchainState
+from utils.blockchain import BlockchainPlayer, BlockchainState
 from utils.chat_window import ChatMessage, ChatWindow
 from utils.generals import Player, Traitor
 
@@ -344,3 +344,65 @@ class TraitorGroupChat(Scene):
                 ),
             )
             self.wait()
+
+
+class OtherLeaderAttacks(Scene):
+    def construct(self):
+        leader = BlockchainPlayer().scale(1.5)
+        leader.shift(LEFT * 6)
+
+        self.play(FadeIn(leader))
+        self.play(leader.make_leader())
+
+        chat = ChatWindow().shift(LEFT * 2)
+        chat.add_message("General #1", "Foo", action="add")
+        chat.add_message("General #2", "Bar", action="add")
+        chat.add_message("General #3", "Baz", action="add")
+        self.play(FadeIn(chat))
+        self.wait()
+
+        # Shuffle messages
+        message_positions = [message.get_center() for message in chat.all_messages]
+        self.play(
+            chat.all_messages[0].animate.move_to(message_positions[1]),
+            chat.all_messages[1].animate.move_to(message_positions[2]),
+            chat.all_messages[2].animate.move_to(message_positions[0]),
+        )
+        self.wait()
+        # Shuffle messages back
+        self.play(
+            chat.all_messages[0].animate.move_to(message_positions[0]),
+            chat.all_messages[1].animate.move_to(message_positions[1]),
+            chat.all_messages[2].animate.move_to(message_positions[2]),
+        )
+        self.wait()
+
+        copies = [[m.copy() for m in chat.all_messages] for _ in range(2)]
+
+        # Attack 1: Send different messages to different generals
+        # TODO(vv): maybe we should make this send all messages, but with different texts?
+        self.play(
+            *[c.animate.shift(RIGHT * 4) for c in [copies[0][0], copies[0][1]]],
+            Create(
+                Text("For general #2", color=util_general.BASE00)
+                .next_to(copies[0][0], direction=UP)
+                .shift(RIGHT * 4)
+                .scale(0.8)
+            ),
+        )
+        self.wait()
+        self.play(
+            *[c.animate.shift(RIGHT * 8) for c in [copies[1][1], copies[1][2]]],
+            Create(
+                Text("For general #3", color=util_general.BASE00)
+                .next_to(copies[1][0], direction=UP)
+                .shift(RIGHT * 8)
+                .scale(0.8)
+            ),
+        )
+        self.wait()
+
+        # Pretend you didn't receive a message.
+        copies[1][0].shift(RIGHT * 8)
+        self.play(FadeIn(copies[1][0]), FadeOut(copies[1][2]))
+        self.wait()
