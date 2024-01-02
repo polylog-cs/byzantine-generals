@@ -1208,6 +1208,8 @@ class SolutionCombine2(Scene):
 
         # Here is how that would work in detail. Each time, every general sends his current opinion to the leader and then gets a new opinion back. This new opinion is the general’s starting opinion for the next phase. We repeat this three times with three different leaders and the final opinion is the output of every general.
 
+        self.play(FadeIn(crowns[1]))
+
         for i in range(3):
             game.leader_algorithm(self, i)
             self.wait()
@@ -1224,7 +1226,7 @@ class SolutionCombine2(Scene):
         for i in range(len(game.generals)):
             if i not in TRAITOR_IDS4:
                 self.play(game.generals[i].animate.change_opinion("Y"))
-        print(game.generals[i].icon.get_width())
+
         locks = [
             ImageMobject("img/lock.png")
             .scale_to_fit_width(game.generals[i].icon.get_width() / 1.5)
@@ -1239,8 +1241,13 @@ class SolutionCombine2(Scene):
                 lag_ratio=0.3,
             )
         )
+        self.play(crowns[1].animate.move_to(crowns[2]))
         self.wait()
-        self.play(*[FadeOut(lock) for lock in locks])
+
+        self.play(
+            *[FadeOut(lock) for lock in locks],
+            FadeOut(crown),
+        )
         self.wait()
 
 

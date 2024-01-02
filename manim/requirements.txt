@@ -25,17 +25,17 @@ networkx==2.8.8
 numpy==1.26.1
 Pillow==9.5.0
 pre-commit==3.6.0
-pybind11 @ file:///private/tmp/pybind11-20231006-5480-1dj4kz4/pybind11-2.11.1
-pycairo @ file:///private/tmp/py3cairo-20231009-6618-8jcb0h/pycairo-1.25.0
+pybind11==2.11.1
+pycairo==1.25.0
+scipy==1.11.3
 pydub==0.25.1
 pyglet==2.0.9
 Pygments==2.16.1
-pyobjc-core==10.0
-pyobjc-framework-Cocoa==10.0
+pyobjc-core==10.0; sys_platform == 'darwin'
+pyobjc-framework-Cocoa==10.0; sys_platform == 'darwin'
 pyrr==0.10.3
 requests==2.31.0
 rich==13.6.0
-scipy @ file:///private/tmp/scipy-20230927-5808-18cu4be/scipy-1.11.3
 screeninfo==0.8.1
 six==1.16.0
 skia-pathops==0.7.4
