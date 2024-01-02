@@ -430,3 +430,39 @@ class BlockchainForConsensus(Scene):
             self.play(FadeIn(message), run_time=0.5)
             self.play(chat.copy_messages([message], keep_original=False))
             chat.messages_group.add(message)
+
+
+class BlockchainForCryptocurrencies(Scene):
+    def construct(self):
+        util_general.default()
+
+        messages_data = [
+            # from, to, money, allowed
+            (2, 5, 10, True),
+            (3, 7, 50, True),
+            (2, 6, 80, True),
+            (1, 8, 1000, False),
+            (1, 8, 10, True),
+        ]
+
+        chat = ChatWindow().shift(LEFT * 4 + DOWN * 3)
+
+        for general_from, general_to, money, allowed in messages_data:
+            sender = f"General #{general_from}"
+            message_str = f"Send {money} coins to General #{general_to}"
+
+            message = ChatMessage(sender, message_str, with_verification=True).shift(
+                DOWN * 3 + RIGHT * 2
+            )
+            self.play(FadeIn(message), run_time=0.5)
+            if not allowed:
+                not_allowed_text = Text("Insufficient funds!", color=util_general.RED)
+                not_allowed_text.next_to(message, direction=UP).shift(RIGHT)
+                self.play(Create(not_allowed_text))
+                self.wait()
+                self.play(Uncreate(not_allowed_text), FadeOut(message))
+            else:
+                self.play(chat.copy_messages([message], keep_original=False))
+                chat.messages_group.add(message)
+
+            self.wait()
