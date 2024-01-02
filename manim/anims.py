@@ -3,7 +3,7 @@ from pathlib import Path
 
 from manim import *
 
-from utils.chat_window import ChatWindow
+from utils.chat_window import ChatMessage, ChatWindow
 from utils.generals import (
     CodeWithStepping,
     Crown,
@@ -460,17 +460,16 @@ class Setup1(Scene):
             ("General #7", "I vote NO."),
         ]
 
-        chat = ChatWindow().next_to(game, RIGHT, buff=1)
-        self.play(chat.create_window())
-        self.wait()
+        chat = ChatWindow().next_to(game, RIGHT, buff=MED_SMALL_BUFF)
 
         for pair in message_pairs:
-            self.play(chat.add_message(pair[0], pair[1]))
+            self.play(chat.add_message(ChatMessage(sender=pair[0], message=pair[1])))
             self.wait()
 
         # remove the chat window
         self.play(FadeOut(chat))
         self.wait()
+        return
 
         # Each general has to stay in his camp and in each round, he can only send a direct message to each other general.
 

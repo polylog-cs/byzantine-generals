@@ -72,7 +72,7 @@ class ChatMessage(VGroup):
             # for the verification checkmark if we want to re-add it later.
             self.header_group.remove(self.verification)
 
-        self.bubble = RoundedRectangle(
+        bubble_rectangle = RoundedRectangle(
             corner_radius=0.5,
             width=width,
             height=height,
@@ -81,33 +81,46 @@ class ChatMessage(VGroup):
             stroke_opacity=0,
         )
 
-        self.add(self.bubble)
+        tail = self.make_tail(bubble_rectangle, tail_right=tail_right, tail_up=tail_up)
 
-        self.tail = None
-        self.set_tail_direction(tail_right=tail_right, tail_up=tail_up)
+        self.bubble = Union(
+            bubble_rectangle,
+            tail,
+            fill_opacity=1,
+            fill_color=background_color,
+            stroke_opacity=0,
+        )
+        self.add(self.bubble)
 
         self.add(self.text_group)
 
     # Might not be needed in the end because moving the tail
     # can also be handled by .become().
-    def set_tail_direction(self, tail_right: bool, tail_up: bool):
-        if self.tail:
-            self.remove(self.tail)
-
+    def make_tail(self, bubble_rectangle: Rectangle, tail_right: bool, tail_up: bool):
         tail_direction_x = RIGHT if tail_right else LEFT
         tail_direction_y = UP if tail_up else DOWN
 
-        tail_corner = self.bubble.get_corner(tail_direction_x + tail_direction_y)
+        tail_corner = bubble_rectangle.get_corner(tail_direction_x + tail_direction_y)
 
-        self.tail = Polygon(
+        vertices = [
             tail_corner,
             tail_corner - 0.5 * tail_direction_x,
             tail_corner - 0.5 * tail_direction_y - 0.5 * tail_direction_x,
+        ]
+
+        # We'll be `Union()`-ing this with the rectangle later and Union
+        # is sensitive to the vertex order. If they're in the wrong order,
+        # we get a XOR of the tail and the bubble instead of a union.
+        if tail_up:
+            vertices.reverse()
+
+        tail = Polygon(
+            *vertices,
             stroke_opacity=0,
             fill_color=self.background_color,
             fill_opacity=1,
         )
-        self.add(self.tail)
+        return tail
 
     def __repr__(self):
         return f"ChatMessage({self.sender}, {self.message})"
@@ -130,10 +143,8 @@ class ChatMessage(VGroup):
 
 
 class ChatWindow(VGroup):
-    def __init__(self, width=6, height=4, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.width = width
-        self.height = height
         # Mobjects don't keep track of their scale, so when we scale the chat window
         # the newly created messages are *not* scaled. We keep track of the scale
         # ourselves.
@@ -154,31 +165,28 @@ class ChatWindow(VGroup):
         # Includes even the ones that aren't displayed at the moment.
         self.all_messages: list[ChatMessage] = []
 
+        # Even though we don't display the frame, we still need the window
+        # because it affects methods like .get_center() - that doesn't work
+        # if the group is empty.
         self.window = Rectangle(
-            height=height,
-            width=width,
+            # Arbitrary but standardized. Changing width/height could break
+            # positioning in existing animations
+            width=6,
+            height=4,
             color=text_color,
             stroke_opacity=0,  # vv: uncomment to show border
         )
         self.add(self.window)
 
-    def create_window(self):
-        # Create a basic window frame for the chat
-        animation = Create(self.window)
-        return animation
-
     def add_message(
         self,
-        sender: str,
-        message: str,
-        background_color: ParsableManimColor = util_general.BASE02,
-        with_verification: bool = False,
+        message: ChatMessage,
         action: Literal["animate", "add", "nothing"] = "animate",
     ):
         # Format the message as "sender: message"
 
         # Position for the new message
-        if self.messages_group:
+        if self.all_messages:
             position = (
                 self.all_messages[-1].get_corner(DOWN + LEFT)
                 + DOWN * 0.9 * self.messages_scale
@@ -186,33 +194,24 @@ class ChatWindow(VGroup):
         else:
             position = self.window.get_corner(UP + LEFT) + RIGHT * 0.2 + DOWN * 0.3
 
-        # Create a text object for the message, positioned to the left
-        if sender not in self.senders:
-            self.senders.append(sender)
-        sender_color = self.sender_colors[self.senders.index(sender)]
+        if message.sender not in self.senders:
+            self.senders.append(message.sender)
 
-        message_obj = (
-            ChatMessage(
-                sender,
-                message,
-                sender_color=sender_color,
-                background_color=background_color,
-                with_verification=with_verification,
-            )
-            .scale(self.messages_scale)
-            .move_to(position, aligned_edge=LEFT)
-        )
+        # Make the message properties (color, scale, position) fit the ChatWindow
+        sender_color = self.sender_colors[self.senders.index(message.sender)]
+        message.sender_text.set_color(sender_color)
+        message.scale(self.messages_scale).move_to(position, aligned_edge=LEFT)
 
-        self.all_messages.append(message_obj)
+        self.all_messages.append(message)
 
         if action == "animate":
-            animation = FadeIn(message_obj, run_time=0.5)
+            animation = FadeIn(message, run_time=0.5)
             return AnimationGroup(animation)
         elif action == "add":
-            self.messages_group.add(message_obj)
-            return message_obj
+            self.messages_group.add(message)
+            return message
         elif action == "nothing":
-            return message_obj
+            return message
         else:
             raise ValueError(f"Invalid action {action}")
 
@@ -232,10 +231,12 @@ class ChatWindow(VGroup):
             new_background_color = background_color or message_from.background_color
             new_messages.append(
                 self.add_message(
-                    message_from.sender,
-                    message_from.message,
-                    with_verification=message_from.has_verification(),
-                    background_color=new_background_color,
+                    ChatMessage(
+                        sender=message_from.sender,
+                        message=message_from.message,
+                        background_color=new_background_color,
+                        with_verification=message_from.has_verification(),
+                    ),
                     action="nothing",
                 )
             )

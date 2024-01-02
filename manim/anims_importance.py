@@ -166,9 +166,8 @@ class BlockchainGroupChat(Scene):
         chat = ChatWindow()
 
         for pair in message_pairs:
-            chat.add_message(pair[0], pair[1], action="add")
-            # self.play()
-            # self.wait()
+            chat.add_message(ChatMessage(sender=pair[0], message=pair[1]), action="add")
+
         self.add(chat)
         self.wait(1)
 
@@ -288,7 +287,7 @@ class TraitorGroupChat(Scene):
         chat = ChatWindow()
 
         for pair in message_pairs:
-            chat.add_message(pair[0], pair[1], action="add")
+            chat.add_message(ChatMessage(sender=pair[0], message=pair[1]), action="add")
 
         self.add(chat)
         self.wait(1)
@@ -355,9 +354,9 @@ class OtherLeaderAttacks(Scene):
         self.play(leader.make_leader())
 
         chat = ChatWindow().shift(LEFT * 2)
-        chat.add_message("General #1", "Foo", action="add")
-        chat.add_message("General #2", "Bar", action="add")
-        chat.add_message("General #3", "Baz", action="add")
+        chat.add_message(ChatMessage(sender="General #1", message="Foo"), action="add")
+        chat.add_message(ChatMessage(sender="General #2", message="Bar"), action="add")
+        chat.add_message(ChatMessage(sender="General #3", message="Baz"), action="add")
         self.play(FadeIn(chat))
         self.wait()
 
@@ -454,7 +453,8 @@ class BlockchainForCryptocurrencies(Scene):
             message = ChatMessage(sender, message_str, with_verification=True).shift(
                 DOWN * 3 + RIGHT * 2
             )
-            self.play(FadeIn(message), run_time=0.5)
+            self.play(FadeIn(message, shift=LEFT), run_time=0.5)
+
             if not allowed:
                 not_allowed_text = Text("Insufficient funds!", color=util_general.RED)
                 not_allowed_text.next_to(message, direction=UP).shift(RIGHT)

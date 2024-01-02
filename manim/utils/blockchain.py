@@ -119,9 +119,6 @@ class BlockchainState(Group):
                 color_change_animations.append(
                     message.bubble.animate.set_fill_color(util_general.BASE02)
                 )
-                color_change_animations.append(
-                    message.tail.animate.set_fill_color(util_general.BASE02)
-                )
 
         scene.play(*color_change_animations)
         scene.wait(1)
