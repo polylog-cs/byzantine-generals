@@ -1,4 +1,5 @@
 import collections
+import itertools
 from typing import Optional
 
 import numpy as np
@@ -40,10 +41,11 @@ def get_example_graph():
     return graph
 
 
-class SendMessage(Animation):
-    def __init__(self, dot: Dot, start, end, **kwargs) -> None:
+# TODO(vv): unify with the SendMessage class?
+class SendNetworkMessage(Animation):
+    def __init__(self, mobject: Mobject, start, end, **kwargs) -> None:
         # Pass number as the mobject of the animation
-        super().__init__(dot, **kwargs)
+        super().__init__(mobject, **kwargs)
         # Set start and end
         self.start = start
         self.end = end
@@ -112,7 +114,9 @@ def play_message_animations(scene: Scene, graph: Graph, n: int, fraction_fire: f
             )
             scene.add(dot)
 
-            animation = SendMessage(dot, graph[v1].get_center(), graph[v2].get_center())
+            animation = SendNetworkMessage(
+                dot, graph[v1].get_center(), graph[v2].get_center()
+            )
             animations.append(animation)
 
     lag_ratio = 0.1
@@ -122,7 +126,7 @@ def play_message_animations(scene: Scene, graph: Graph, n: int, fraction_fire: f
     group = []
     for animation in animations:
         group.append(animation)
-        if not isinstance(animation, SendMessage):
+        if not isinstance(animation, SendNetworkMessage):
             # Flush the group
             scene.play(LaggedStart(*group, lag_ratio=lag_ratio))
             group = []
@@ -466,3 +470,28 @@ class BlockchainForCryptocurrencies(Scene):
                 chat.messages_group.add(message)
 
             self.wait()
+
+
+class BlockchainRandomLeader(Scene):
+    def construct(self):
+        chat = ChatWindow()
+
+        self.add(chat)
+        self.wait(1)
+
+        state = BlockchainState(chat, x_offset=0, y_offset=0)
+
+        self.remove(chat)
+        self.play(FadeIn(*state.players), *state.creation_animations)
+        self.wait(1)
+
+        rng = np.random.default_rng(120)
+
+        leader_order = (
+            list(itertools.chain(*[list(range(4)) for _ in range(2)]))
+            + rng.choice(range(4), size=30).tolist()
+        )
+
+        for leader_id in leader_order:
+            if leader_id != state.leader_id:
+                state.make_leader(leader_id, self)

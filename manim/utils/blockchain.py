@@ -21,10 +21,10 @@ class BlockchainPlayer(Player):
 
 
 class BlockchainState(Group):
-    def __init__(self, base_chat: ChatWindow):
+    def __init__(self, base_chat: ChatWindow, x_offset=-3, y_offset=-0.5):
         coef = 2.3
         player_locations = [
-            (x * coef - 3, y * coef - 0.5)
+            (x * coef + x_offset, y * coef + y_offset)
             for x, y in [(-1, 1), (1, 1), (1, -1), (-1, -1)]
         ]
 
