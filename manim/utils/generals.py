@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from manim import *
 
@@ -23,7 +23,7 @@ MESSAGE_BUFFER_VERTICAL_OFFSET = 0.3
 # Messages are received in a circle with this radius
 RECEIVE_BUFFER_CIRCULAR_RADIUS = 0.23
 
-MsgType = namedtuple("MsgType", ["sender_id", "receiver_id", "message"])
+MessageToSend = namedtuple("MsgType", ["sender_id", "receiver_id", "message"])
 
 
 class Message(Group):
@@ -441,7 +441,7 @@ class GameState(Group):
     def send_messages_low_tech(
         self,
         scene: Scene,
-        messages: List[MsgType],
+        messages: List[MessageToSend],
         lag_ratio=0.1,
         # Sending messages pairwise between all 12 generals is too much.
         max_messages: int = 25,
@@ -472,69 +472,73 @@ class GameState(Group):
 
     def send_messages(
         self,
-        scene: Scene,
-        messages: List[MsgType],
+        messages_to_send: List[MessageToSend],
         circular_receive=False,
         circular_send=False,
-    ):
+    ) -> Tuple[List[Message], List[Animation], List[Mobject]]:
         """
         Send messages from the sender to the receiver.
         If circular_receive is True, the messages are received in the receive buffer
         in the same layout as the generals are positioned in the circle.
         """
         msg_objects = []
-        anims_msg_creation = []
         anims = []
         to_remove = []
-        for message in messages:
-            sender = self.generals[message.sender_id]
-            receiver = self.generals[message.receiver_id]
-            msg = message.message
+
+        for message_to_send in messages_to_send:
+            sender = self.generals[message_to_send.sender_id]
+            receiver: General = self.generals[message_to_send.receiver_id]
+            message = message_to_send.message
+
             if sender.is_traitor:
                 # Make the message border black if the sender is a traitor
                 # to indicate that the message is not trustworthy.
-                msg.icon.stroke_color = BLACK
+                message.icon.stroke_color = BLACK
 
             if circular_send:
                 # Before sending, messages are aligned around the sender's icon,
                 # corresponding to which receiver they are sent to.
-                msg.move_to(
+                message.move_to(
                     sender.icon.get_center()
-                    + self.circle_position(message.receiver_id) * GENERAL_RADIUS
+                    + self.circle_position(message_to_send.receiver_id) * GENERAL_RADIUS
                 )
             else:
                 # Messages are sent from the sender's position to the receiver's buffer
                 # TODO hlasilo chybu
                 # msg.move_to(sender.receive_buffer)
-                msg.move_to(sender.icon.get_center())
+                message.move_to(sender.icon.get_center())
 
             # Make the message icon appear from the sender's icon
-            sender_icon_copy = sender.icon.copy()
-            sender_icon_copy.fill_color = sender_icon_copy.stroke_color
-            sender_msg_copy = msg.icon.copy()
-            to_remove.append(sender_icon_copy)
-            to_remove.append(sender_msg_copy)
-            anims_msg_creation.append(sender_icon_copy.animate.become(sender_msg_copy))
+            message_icon_copy = message.icon.copy()
+            message.icon = sender.icon.copy()
 
-            msg_objects.append(msg)
             # Animate the message moving from the sender to the receiver.
             if circular_receive:
                 # Arange the messages in the buffer in the same circle as the generals from
                 # which they were sent.
                 receive_location = (
                     receiver.receive_buffer.get_center()
-                    + self.circle_position(message.sender_id)
+                    + self.circle_position(message_to_send.sender_id)
                     * RECEIVE_BUFFER_CIRCULAR_RADIUS
                 )
             else:
                 receive_location = receiver.receive_buffer.get_center()
-            anims.append(msg.animate.move_to(receive_location))
-            receiver.receive_buffer.add_msg(msg)
-        scene.play(*anims_msg_creation)
-        scene.remove(*to_remove)
-        scene.add(*msg_objects)
-        scene.play(*anims)
-        return msg_objects
+
+            message_icon_copy.move_to(receive_location)
+            anims.append(message.icon.animate.become(message_icon_copy))
+            msg_objects.append(message)
+
+            message.move_to(receive_location)
+            receiver.receive_buffer.add_msg(message)
+
+            to_remove.append(message.icon)
+
+        # NOTE(vv): It's ugly to have to return a separate to_remove list
+        # but I couldn't figure out how to avoid it because of Manim's weird
+        # behavior with animations scheduled ahead of time and .become().
+        # Specifically, when you run move_receive_buffer_to_thinking_buffer(),
+        # copies of the message dots would say behind.
+        return msg_objects, anims, to_remove
 
     def broadcast_opinion(
         self,
@@ -550,16 +554,19 @@ class GameState(Group):
             for i in range(len(self.generals)):
                 if i != general_id or send_to_self:
                     messages.append(
-                        MsgType(
+                        MessageToSend(
                             general_id, i, msg_class(self.generals[general_id].opinion)
                         )
                     )
-        return self.send_messages(
-            scene,
+        msg_objects, anims, to_remove = self.send_messages(
             messages,
             circular_receive=circular_receive,
             circular_send=circular_send,
         )
+        scene.play(*anims)
+        scene.remove(*to_remove)
+
+        return msg_objects
 
     def send_opinions_to(
         self, scene: Scene, general_id: int, send_to_self: bool = False
@@ -568,9 +575,12 @@ class GameState(Group):
         for i in range(len(self.generals)):
             if send_to_self or i != general_id:
                 messages.append(
-                    MsgType(i, general_id, Message(self.generals[i].opinion))
+                    MessageToSend(i, general_id, Message(self.generals[i].opinion))
                 )
-        return self.send_messages(scene, messages, circular_receive=True)
+        msg_objects, anims, to_remove = self.send_messages(
+            messages, circular_receive=True
+        )
+        return msg_objects, anims, to_remove
 
     def update_general_opinions(
         self, scene: Scene, general_ids: List[int], opinions: List[Message]
@@ -595,10 +605,12 @@ class GameState(Group):
 
         scene.wait(0.5)
 
-        msgs = self.send_opinions_to(scene, leader_id, send_to_self)
+        _, anims, to_remove = self.send_opinions_to(scene, leader_id, send_to_self)
+        scene.play(*anims)
 
         scene.wait(0.5)
 
+        scene.remove(*to_remove)
         scene.play(*self.generals[leader_id].move_receive_buffer_to_thinking_buffer())
         if not self.generals[leader_id].is_traitor:
             new_opinion = self.generals[leader_id].update_opinion_to_majority(scene)
@@ -617,11 +629,22 @@ class GameState(Group):
 
     def majority_algorithm(self, scene: Scene, send_to_self: bool = True):
         anims = []
-        for i in range(len(self.generals)):
-            self.send_opinions_to(scene, i, send_to_self)
-            anims += self.generals[i].move_receive_buffer_to_thinking_buffer()
+        to_remove = []
 
-        scene.play(*anims)
+        for i in range(len(self.generals)):
+            _, cur_anims, cur_to_remove = self.send_opinions_to(scene, i, send_to_self)
+            anims.append(AnimationGroup(*cur_anims))
+            to_remove += cur_to_remove
+            # scene.play(*cur_anims)
+            # scene.remove(*to_remove)
+
+            # self.remove(self.generals[i].receive_buffer.messages[0].icon)
+            # scene.play(*self.generals[i].move_receive_buffer_to_thinking_buffer(self))
+            # anims += self.generals[i].move_receive_buffer_to_thinking_buffer()
+
+        scene.play(LaggedStart(*anims, lag_ratio=0.2))
+        scene.remove(*to_remove)
+        self.move_all_receive_buffers_to_thinking_buffers(scene)
 
         for i in range(len(self.generals)):
             if self.generals[i].is_traitor:

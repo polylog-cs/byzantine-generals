@@ -10,7 +10,7 @@ from utils.generals import (
     CyclicOpinionTraitor,
     GameState,
     Message,
-    MsgType,
+    MessageToSend,
     Player,
     Traitor,
 )
@@ -413,7 +413,7 @@ class Setup1(Scene):
             for j in range(len(game.generals)):
                 if i != j:
                     messages.append(
-                        MsgType(i, j, Message(SAMPLE_OPINIONS[i], clipart=True))
+                        MessageToSend(i, j, Message(SAMPLE_OPINIONS[i], clipart=True))
                     )
 
         game.send_messages_low_tech(
@@ -489,8 +489,8 @@ class Setup1(Scene):
         messages_to = []
         for i in range(len(game.generals)):
             if i != id:
-                messages_from.append(MsgType(id, i, Message("hi", clipart=True)))
-                messages_to.append(MsgType(i, id, Message("hi", clipart=True)))
+                messages_from.append(MessageToSend(id, i, Message("hi", clipart=True)))
+                messages_to.append(MessageToSend(i, id, Message("hi", clipart=True)))
 
         for messages in [messages_from, messages_to]:
             game.send_messages_low_tech(
@@ -573,7 +573,9 @@ class Setup1(Scene):
 
         messages = []
         for pair in pairs:
-            messages.append(MsgType(pair[0], pair[1], Message("hi", clipart=True)))
+            messages.append(
+                MessageToSend(pair[0], pair[1], Message("hi", clipart=True))
+            )
 
         # TODO add a parameter lag ratio?
         game.send_messages_low_tech(
@@ -685,7 +687,9 @@ class Setup2(Scene):
                 for j in range(len(game.generals)):
                     if i != j:
                         messages.append(
-                            MsgType(i, j, Message(SAMPLE_OPINIONS[i], clipart=True))
+                            MessageToSend(
+                                i, j, Message(SAMPLE_OPINIONS[i], clipart=True)
+                            )
                         )
 
             # TODO do both together
