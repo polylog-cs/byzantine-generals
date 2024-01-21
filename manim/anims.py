@@ -676,12 +676,12 @@ class Setup2(Scene):
         # TODO just send envelopes
 
         counter_tex = Tex("Round: 0", color=TEXT_COLOR).next_to(
-            game, UP, buff=0.5
+            game, UP, buff=-MED_LARGE_BUFF
         )  # .align_to(game, LEFT)
         self.play(FadeIn(counter_tex))
         self.wait()
 
-        for it in range(5):
+        for it in range(2):
             messages = []
             for i in range(len(game.generals)):
                 for j in range(len(game.generals)):
@@ -689,13 +689,7 @@ class Setup2(Scene):
                         messages.append(
                             MsgType(i, j, Message(SAMPLE_OPINIONS[i], clipart=True))
                         )
-            random.shuffle(messages)
-            # TODO this is just for faster rendering
-            messages = messages[:2]
-            game.send_messages_low_tech(
-                self,
-                messages,
-            )
+
             # TODO do both together
             self.play(
                 counter_tex.animate.become(
@@ -704,6 +698,12 @@ class Setup2(Scene):
                     .align_to(counter_tex, LEFT)
                 )
             )
+
+            game.send_messages_low_tech(
+                self,
+                messages,
+            )
+
             self.wait(0.5)
 
         # When the protocol finishes, each general outputs his answer which is either YES or NO and which may be different from his initial opinion.

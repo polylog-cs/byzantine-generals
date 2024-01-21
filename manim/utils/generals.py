@@ -3,6 +3,8 @@ from typing import List, Optional
 
 from manim import *
 
+from .util_general import SendMessage
+
 GENERAL_RADIUS = 0.5
 
 GENERAL_CIRCLE_SIZE = 2.2
@@ -434,42 +436,33 @@ class GameState(Group):
         self,
         scene: Scene,
         messages: List[MsgType],
-        lag_ratio=0,
+        lag_ratio=0.1,
+        # Sending messages pairwise between all 12 generals is too much.
+        max_messages: int = 25,
     ):
         """
         Sends messages from the sender to the receiver.
         Only cliparts are shown, no additional info.
         """
 
-        # anims = []
+        rng = np.random.default_rng(0)
+        rng.shuffle(messages)
+        messages = messages[:max_messages]
+
+        anims = []
         for message in messages:
             sender = self.generals[message.sender_id]
             receiver = self.generals[message.receiver_id]
-            msg = message.message.clipart
+            msg = message.message.clipart.copy()
 
-            msg.move_to(sender)
+            msg.shift(RIGHT * 100)
 
-            # anims.append(
-            #     Succession(
-            #         GrowFromCenter(msg),
-            #          msg.animate.move_to(receiver),
-            #          msg.animate.scale(0)
-            #     )
-            # )
+            anims.append(
+                SendMessage(msg, start=sender.get_center(), end=receiver.get_center())
+            )
 
-            scene.play(GrowFromCenter(msg))
-            scene.wait(0.5)
-            scene.play(msg.animate.move_to(receiver))
-            scene.wait(0.5)
-            scene.play(msg.animate.scale(0))
-            scene.wait(0.5)
-
-        # scene.play(
-        #     Succession(
-        #         *anims,
-        #         lag_ratio = lag_ratio
-        #     )
-        # )
+        # Note that `Succession` doesn't work here.
+        scene.play(LaggedStart(*anims, lag_ratio=lag_ratio))
 
     def send_messages(
         self,

@@ -154,3 +154,22 @@ BACKGROUND_COLOR_DARK = BASE02
 BACKGROUND_COLOR = BACKGROUND_COLOR_LIGHT
 
 config.max_files_cached = 1000
+
+
+class SendMessage(Animation):
+    def __init__(self, mobject: Mobject, start, end, **kwargs) -> None:
+        super().__init__(mobject, **kwargs)
+        self.start = start
+        self.end = end
+
+    def interpolate_mobject(self, alpha: float) -> None:
+        alpha = rate_functions.ease_in_out_sine(alpha)
+        scale = rate_functions.there_and_back_with_pause(alpha)
+
+        self.mobject.scale_to_fit_width(0.01 + scale)
+        self.mobject.move_to(self.start + alpha * (self.end - self.start))
+
+        if alpha == 1.0:
+            # The scale needs to be non-zero at all times, so make the
+            # mobject transparent at the end to
+            self.mobject.set_opacity(0)
