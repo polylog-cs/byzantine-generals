@@ -412,11 +412,9 @@ class Setup1(Scene):
         for i in range(len(game.generals)):
             for j in range(len(game.generals)):
                 if i != j:
-                    if random.random() < 0.05:
-                        messages.append(
-                            MsgType(i, j, Message(SAMPLE_OPINIONS[i], clipart=True))
-                        )
-        random.shuffle(messages)
+                    messages.append(
+                        MsgType(i, j, Message(SAMPLE_OPINIONS[i], clipart=True))
+                    )
 
         game.send_messages_low_tech(
             self,
@@ -921,20 +919,20 @@ class Setup2(Scene):
 class Solution1(Scene):
     def construct(self):
         # create a game with no traitors
-        game = GameState([Player(opinion="Y") for i in range(len(SAMPLE_OPINIONS2))])
+        game = GameState([Player(opinion="-") for i in range(len(SAMPLE_OPINIONS2))])
         self.play(
             *[FadeIn(game.generals[i]) for i in range(len(game.generals))],
         )
         self.wait()
         # generals get their starting opinion
-        for i in range(len(game.generals)):
-            self.play(game.generals[i].animate.change_opinion(SAMPLE_OPINIONS2[i]))
+        game.set_opinions(self, SAMPLE_OPINIONS2)
         self.wait()
-        # Solution 2
-        # So this was the first approach. Here is a different approach. As part of our protocol, we could make one general the leader. Then, everybody sends their token to the leader, the leader decides on the answer, let’s say by choosing the majority opinion, and sends the answer back to the rest.
 
+        # Solution 1
         game.leader_algorithm(self, 1)
         self.wait()
+
+        rng = np.random.default_rng(1)
 
         # This protocol surely works if there are no traitors, but if we are unlucky and choose a traitor as the leader, he gets a complete control over the output of honest generals, a spectacular failure!
 
@@ -943,7 +941,7 @@ class Solution1(Scene):
                 self,
                 i,
                 CyclicOpinionTraitor(
-                    "".join(random.choice(["Y", "N"]) for _ in range(12))
+                    "".join(rng.choice(["Y", "N"]) for _ in range(12))
                 ),
             )
 
@@ -955,9 +953,12 @@ class Solution1(Scene):
         # But let’s look on the bright side! If we could somehow ensure that the leader is honest, this protocol would work really well.
 
         # change opinions back
-        for i in range(len(game.generals)):
-            if i not in TRAITOR_IDS3:
-                self.play(game.generals[i].animate.change_opinion(SAMPLE_OPINIONS3[i]))
+        for i in TRAITOR_IDS3:
+            game.change_general(
+                self, i, CyclicOpinionTraitor("Y"), with_animation=False
+            )
+        game.set_opinions(self, SAMPLE_OPINIONS3)
+
         self.wait()
 
         # Notice that the output of the protocol is not necessarily the majority opinion of honest generals, because the traitors also get to vote,
@@ -982,14 +983,13 @@ class Solution2(Scene):
         # So, how can we approach the problem? Well, let’s first see how we could solve it if there were no traitors at all and understand how those approaches fail.
 
         # create a game with no traitors
-        game = GameState([Player() for i in range(len(SAMPLE_OPINIONS2))])
+        game = GameState([Player("-") for i in range(len(SAMPLE_OPINIONS2))])
         self.play(
             *[FadeIn(game.generals[i]) for i in range(len(game.generals))],
         )
         self.wait()
         # generals get their starting opinion
-        for i in range(len(game.generals)):
-            game.generals[i].change_opinion(SAMPLE_OPINIONS2[i])
+        game.set_opinions(self, SAMPLE_OPINIONS2)
         self.wait()
 
         # Without traitors, there are two pretty simple protocols. Let’s look at them. In the first protocol, everybody simply sends their opinion to everybody else, including themselves.
@@ -1007,11 +1007,13 @@ class Solution2(Scene):
 
         # [“7 YES messages” circubscribe 7 YES tokenů u každého generála]
 
+        rng = np.random.default_rng(0)
+
         game_with_traitors = GameState(
             [
                 (
                     CyclicOpinionTraitor(
-                        "".join(random.choice(["Y", "N"]) for _ in range(12))
+                        "".join(rng.choice(["Y", "N"]) for _ in range(12))
                     )
                     if i in TRAITOR_IDS2
                     else Player(opinion=SAMPLE_OPINIONS2[i])
@@ -1111,6 +1113,8 @@ class SolutionCombine1(Scene):
     def construct(self):
         # So let’s now take a step back and see where we stand. We have two approaches to the problem. Both of them ultimately failed, but both of them also work well in some interesting situations.
 
+        rng = np.random.default_rng(0)
+
         sc = 0.7
         shft = 3
         games = [
@@ -1118,7 +1122,7 @@ class SolutionCombine1(Scene):
                 [
                     (
                         CyclicOpinionTraitor(
-                            "".join(random.choice(["Y", "N"]) for _ in range(12))
+                            "".join(rng.choice(["Y", "N"]) for _ in range(12))
                         )
                         if i in TRAITOR_IDS
                         else Player(opinion=SAMPLE_OPINIONS[i])
@@ -1175,11 +1179,12 @@ class SolutionCombine1(Scene):
 
 class SolutionCombine2(Scene):
     def construct(self):
+        rng = np.random.default_rng(0)
         game = GameState(
             [
                 (
                     CyclicOpinionTraitor(
-                        "".join(random.choice(["Y", "N"]) for _ in range(12))
+                        "".join(rng.choice(["Y", "N"]) for _ in range(12))
                     )
                     if i in TRAITOR_IDS4
                     else Player(opinion=SAMPLE_OPINIONS4[i])
@@ -1252,11 +1257,12 @@ class SolutionCombine2(Scene):
 
 class SolutionCombine3(Scene):
     def construct(self):
+        rng = np.random.default_rng(0)
         game = GameState(
             [
                 (
                     CyclicOpinionTraitor(
-                        "".join(random.choice(["Y", "N"]) for _ in range(12))
+                        "".join(rng.choice(["Y", "N"]) for _ in range(12))
                     )
                     if i in TRAITOR_IDS4
                     else Player(opinion="Y")

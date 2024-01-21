@@ -401,14 +401,20 @@ class GameState(Group):
             g.add_thinking_buffer(thinking_buffer)
 
     # TODO pls check
-    def change_general(self, scene: Scene, i: int, new_general: General):
+    def change_general(
+        self, scene: Scene, i: int, new_general: General, with_animation: bool = True
+    ):
         """
         Replace the ith general with a new general.
         """
         new_general.shift(self.circle_position(i) * GENERAL_CIRCLE_SIZE)
 
-        scene.play(FadeOut(self.generals[i]), FadeIn(new_general))
-        scene.wait()
+        if with_animation:
+            scene.play(FadeOut(self.generals[i]), FadeIn(new_general))
+            scene.wait()
+        else:
+            scene.remove(self.generals[i])
+            scene.add(new_general)
 
         self.remove(self.generals[i])
         self.generals[i] = new_general
@@ -610,9 +616,13 @@ class GameState(Group):
         scene.play(self.generals[leader_id].remove_leader())
 
     def majority_algorithm(self, scene: Scene, send_to_self: bool = True):
+        anims = []
         for i in range(len(self.generals)):
             self.send_opinions_to(scene, i, send_to_self)
-            scene.play(*self.generals[i].move_receive_buffer_to_thinking_buffer())
+            anims += self.generals[i].move_receive_buffer_to_thinking_buffer()
+
+        scene.play(*anims)
+
         for i in range(len(self.generals)):
             if self.generals[i].is_traitor:
                 continue
@@ -666,3 +676,13 @@ class GameState(Group):
                 if not g.is_traitor and not g.is_leader():
                     new_opinion = g.update_opinion_to_supermajority_or_leader(scene)
                     self.update_general_opinions(scene, [i], [new_opinion])
+
+    def set_opinions(self, scene: Scene, opinions: List[str]):
+        scene.play(
+            LaggedStart(
+                *[
+                    general.animate.change_opinion(opinion)
+                    for general, opinion in zip(self.generals, opinions)
+                ]
+            )
+        )
