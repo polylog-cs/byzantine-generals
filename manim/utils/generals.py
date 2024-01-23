@@ -51,6 +51,8 @@ class Crown(SVGMobject):
         self.move_to(parent)
         self.shift(UP * (parent.height / 2 + self.height / 2) * CROWN_OFFSET)
 
+        self.set_z_index(100)  # Make sure the crown is always on top
+
 
 class LeaderMessage(Message):
     def __init__(self, message: str):
@@ -152,9 +154,26 @@ class CodeWithStepping(Code):
 
 
 class General(Group):
-    def __init__(self):
+    def __init__(
+        self, icon_color: ManimColor, fill_icon: bool, with_clipart: bool = False
+    ):
         super().__init__()
+        self.icon = Circle(
+            radius=GENERAL_RADIUS,
+            color=icon_color,
+            fill_color=icon_color,
+            fill_opacity=1 if fill_icon else 0,
+        )
+        self.add(self.icon)
+
+        if with_clipart:
+            self.clipart = ImageMobject("img/general.png").scale(0.5)
+            self.add(self.clipart)
+
         self.crown = None
+
+    def get_center(self):
+        return self.icon.get_center()
 
     def is_leader(self) -> bool:
         return self.crown is not None
@@ -165,7 +184,8 @@ class General(Group):
         If `generals` is given, moves the crown visually from the current leader
         in `generals` to this general.
         """
-        assert not self.is_leader()
+        if self.is_leader():
+            return Wait(0.0)  # Nothing to do.
 
         current_leader = None
 
@@ -179,10 +199,14 @@ class General(Group):
             old_crown = current_leader.crown
             self.crown = old_crown
             current_leader.crown = None
-            return old_crown.animate.move_to(self, aligned_edge=UP).shift(UP * 0.3)
+            return old_crown.animate.next_to(
+                self.get_center(), direction=UP, buff=MED_LARGE_BUFF
+            )
         else:
             # No other generals given. Simply become the leader.
-            self.crown = Crown(self.icon).move_to(self, aligned_edge=UP).shift(UP * 0.3)
+            self.crown = Crown(self.icon).next_to(
+                self.get_center(), direction=UP, buff=MED_LARGE_BUFF
+            )
             return FadeIn(self.crown)
 
     def remove_leader(self) -> Animation:
@@ -313,8 +337,9 @@ class General(Group):
 
 
 class Player(General):
-    def __init__(self, opinion: str = "", with_icon=False):
-        super().__init__()
+    def __init__(self, opinion: str = "", with_clipart: bool = False):
+        # The icon color gets overwritten by self.change_opinion() below
+        super().__init__(icon_color=GRAY, fill_icon=False, with_clipart=with_clipart)
         self.opinion = opinion
         self.is_traitor = False
         self.icon = Circle(radius=GENERAL_RADIUS)
@@ -322,10 +347,6 @@ class Player(General):
         self.change_opinion(opinion)
         self.add(self.opinion_text)
         self.add(self.icon)
-
-        if with_icon:
-            self.clipart = ImageMobject("img/general.png").scale(0.5)
-            self.add(self.clipart)
 
     def get_color(self):
         return (
@@ -349,21 +370,9 @@ class Player(General):
 
 
 class Traitor(General):
-    def __init__(self, with_icon=False):
-        super().__init__()
+    def __init__(self, with_clipart: bool = False):
+        super().__init__(icon_color=PINK, fill_icon=True, with_clipart=with_clipart)
         self.is_traitor = True
-
-        # TODO I am getting a weird error saying that some transition functions don't know this color
-        # color = "#333"
-        color = PINK
-        self.icon = Circle(
-            radius=GENERAL_RADIUS, color=color, fill_color=color, fill_opacity=1
-        )
-        self.add(self.icon)
-
-        if with_icon:
-            self.clipart = ImageMobject("img/general.png").scale(0.5)
-            self.add(self.clipart)
 
     def change_opinion(self, opinion: str):
         pass
@@ -608,8 +617,14 @@ class GameState(Group):
         scene.play(*anims)
         scene.remove(*opinions, *new_icons)
 
-    def leader_algorithm(self, scene: Scene, leader_id: int, send_to_self: bool = True):
-        scene.play(self.generals[leader_id].make_leader())
+    def leader_algorithm(
+        self,
+        scene: Scene,
+        leader_id: int,
+        send_to_self: bool = True,
+        remove_leader_when_done: bool = True,
+    ):
+        scene.play(self.set_leader(leader_id))
 
         scene.wait(0.5)
 
@@ -633,7 +648,8 @@ class GameState(Group):
             msgs,
         )
 
-        scene.play(self.generals[leader_id].remove_leader())
+        if remove_leader_when_done:
+            scene.play(self.set_leader(scene, None))
 
     def majority_algorithm(self, scene: Scene, send_to_self: bool = True):
         anims = []
@@ -733,3 +749,11 @@ class GameState(Group):
                 if not isinstance(g, Traitor) and g.opinion == opinion
             ],
         )
+
+    def set_leader(self, leader_id: Optional[int]) -> Animation:
+        if leader_id is not None:
+            return self.generals[leader_id].make_leader(self.generals)
+        else:
+            for g in self.generals:
+                if g.is_leader():
+                    return g.remove_leader()

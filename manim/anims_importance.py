@@ -220,8 +220,8 @@ class ElectronicSignature(Scene):
     def construct(self):
         util_general.default()
 
-        player1 = Player(with_icon=True).shift(LEFT * 4 + UP * 2)
-        player2 = Traitor(with_icon=True).shift(LEFT * 4 + DOWN * 2)
+        player1 = Player(with_clipart=True).shift(LEFT * 4 + UP * 2)
+        player2 = Traitor(with_clipart=True).shift(LEFT * 4 + DOWN * 2)
         self.add(player1, player2)
 
         message = (

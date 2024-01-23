@@ -330,7 +330,9 @@ class Setup1(Scene):
     def construct(self):
         # You can imagine the Byzantine generals' problem as a game played in rounds. In our example, there will be 12 players.
 
-        game = GameState([Player(with_icon=True) for i in range(len(SAMPLE_OPINIONS))])
+        game = GameState(
+            [Player(with_clipart=True) for i in range(len(SAMPLE_OPINIONS))]
+        )
         game.shift(GAME_SHIFT)
 
         # add the generals from the game one by one,
@@ -631,9 +633,9 @@ class Setup2(Scene):
         game = GameState(
             [
                 (
-                    Player(with_icon=True)
+                    Player(with_clipart=True)
                     if i not in TRAITOR_IDS
-                    else Traitor(with_icon=True)
+                    else Traitor(with_clipart=True)
                 )
                 for i in range(len(SAMPLE_OPINIONS))
             ]
@@ -1198,26 +1200,22 @@ class SolutionCombine2(Scene):
 
         # Let’s start by looking at the first protocol. How can we deal with the fact that the leader can be a traitor? Well, we know that there are at most 2 traitors, so we could try to run the protocol three times in a row, with three different leaders. We know that at least once the leader is going to be honest.
 
-        crowns = [Crown(parent=game.generals[i].icon) for i in range(3)]
-        crown = crowns[0]
-
-        self.play(FadeIn(crown))
         self.wait()
-        for i in [1, 2]:
-            self.play(crown.animate.move_to(crowns[i]))
-            self.wait()
+        for i in range(0, 3):
+            self.play(game.generals[i].make_leader(game.generals))
+
+        self.wait()
+        self.play(game.generals[2].remove_leader())
+        self.wait()
         self.play(Circumscribe(game.generals[1].icon, color=RED))
         self.wait()
-        self.play(FadeOut(crown))
-        self.wait()
+
         # [u prvního generála se objeví korunka, možná vedle ní něco jako “Phase 1”, pak se posune k druhému generálovi, pak k třetímu “at least once the leader…” -> první a třetí generál jsou řekněme traitoři, highlightujeme toho druhého který je honest]
 
         # Here is how that would work in detail. Each time, every general sends his current opinion to the leader and then gets a new opinion back. This new opinion is the general’s starting opinion for the next phase. We repeat this three times with three different leaders and the final opinion is the output of every general.
 
-        self.play(FadeIn(crowns[1]))
-
         for i in range(3):
-            game.leader_algorithm(self, i)
+            game.leader_algorithm(self, i, remove_leader_when_done=False)
             self.wait()
 
         # [
@@ -1247,12 +1245,12 @@ class SolutionCombine2(Scene):
                 lag_ratio=0.3,
             )
         )
-        self.play(crowns[1].animate.move_to(crowns[2]))
+        self.play(game.generals[2].make_leader(game.generals))
         self.wait()
 
         self.play(
             *[FadeOut(lock) for lock in locks],
-            FadeOut(crown),
+            game.set_leader(None),
         )
         self.wait()
 

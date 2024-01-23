@@ -9,7 +9,7 @@ from .generals import Player
 
 class BlockchainPlayer(Player):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, with_icon=True, **kwargs)
+        super().__init__(*args, with_clipart=True, **kwargs)
         self.chat_window: Optional[ChatWindow] = None
 
     def set_chat_window(self, chat_window: ChatWindow):
