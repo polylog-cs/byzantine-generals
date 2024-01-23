@@ -1026,91 +1026,89 @@ class Solution2(Scene):
             ]
         )
 
+        anims = []
         for i in range(len(game.generals)):
             if i not in TRAITOR_IDS2:
-                self.play(game.generals[i].animate.change_opinion(SAMPLE_OPINIONS2[i]))
+                anims.append(
+                    game.generals[i].animate.change_opinion(SAMPLE_OPINIONS2[i])
+                )
+            else:
+                anims.append(
+                    AnimationGroup(
+                        FadeOut(game.generals[i]),
+                        FadeIn(game_with_traitors.generals[i]),
+                    )
+                )
+
+        self.play(LaggedStart(*anims))
+        for i in range(len(game.generals)):
+            if i not in TRAITOR_IDS2:
                 self.remove(game.generals[i])
                 self.add(game_with_traitors.generals[i])
-            else:
-                self.play(
-                    FadeOut(game.generals[i]),
-                    FadeIn(game_with_traitors.generals[i]),
-                )
         self.wait()
         self.remove(game)
+
         game = game_with_traitors
 
         # Well, imagine that the honest generals start with 5 YES opinions and 5 NO opinions. Honest generals follow the protocol and send their opinion to everybody else.
 
         # highlight 5 Y, then 5 N opinions
-        for l in ["Y", "N"]:
-            self.play(
-                *[
-                    Indicate(
-                        game.generals[i].opinion_text,
-                        color=game.generals[i].opinion_text.get_color(),
-                    )
-                    for i in range(len(game.generals))
-                    if i not in TRAITOR_IDS2 and SAMPLE_OPINIONS2[i] == l
-                ],
-            )
+        for opinion in ["Y", "N"]:
+            game.highlight_generals_with_opinion(self, opinion=opinion)
             self.wait()
 
         # Now the traitors can send 2 YES messages to some generals and 2 NO messages to some other generals.
 
         game.majority_algorithm(self)
+        self.wait()
 
         # [ukáže se jak traitoři pošlou nejdřív YES tokeny některým, pak NO tokeny zbylým (sobě traitoři nepošlou nic)]
         # This leads to some generals outputting YES, and some generals outputting NO. So, this simple protocol fails.
 
         # highlight generals with output Y, then N
-        for l in ["Y", "N"]:
-            self.play(
-                *[
-                    Indicate(
-                        game.generals[i].opinion_text,
-                        color=game.generals[i].opinion_text.get_color(),
-                    )
-                    for i in range(len(game.generals))
-                    if i not in TRAITOR_IDS2 and SAMPLE_OPINIONS2[i] == l
-                ],
-            )
+        for opinion in ["Y", "N"]:
+            game.highlight_generals_with_opinion(self, opinion=opinion)
             self.wait()
 
         # [obtáhnou se ti co outputnou YES, je vidět že jejich YES kopička je větší než NO kopička, pak to samé s NO]
         # But let’s look on the bright side – the protocol only fails if the initial opinion of the honest generals was roughly split. If at least 7 honest generals start with the YES opinion, then this protocol works well.
 
-        for i in range(len(game.generals)):
-            if i not in TRAITOR_IDS2:
-                self.play(
-                    game.generals[i].animate.change_opinion(SAMPLE_OPINIONS_MANY_Y[i])
-                )
+        game.set_opinions(self, SAMPLE_OPINIONS_MANY_Y)
+
         self.wait()
 
         # we show numbers 1,2, ... next to generals with Y
         numbers = []
         num = 0
-        for it in range(len(game.generals)):
-            if it not in TRAITOR_IDS2 and SAMPLE_OPINIONS_MANY_Y[it] == "Y":
+        anims = []
+        for i in range(len(game.generals)):
+            if i not in TRAITOR_IDS2 and SAMPLE_OPINIONS_MANY_Y[i] == "Y":
                 txt = (
                     Text(str(num + 1), color=TEXT_COLOR)
-                    .scale(0.5)
-                    .next_to(game.generals[it].opinion_text, RIGHT)
+                    .scale(0.8)
+                    .move_to(
+                        game.generals[i].opinion_text.get_center() * 1.4,
+                        # direction=game.generals[i].get_center() - game.get_center(),
+                        # buff=MED_LARGE_BUFF,
+                    )
                 )
                 numbers.append(txt)
-                self.play(FadeIn(txt))
+                anims.append(FadeIn(txt))
                 num += 1
-        self.wait()
 
+        self.play(LaggedStart(*anims))
+        self.wait(2)
+
+        # vv: I don't think we need to play the algorittm again.
         # fadeout numbers
-        self.play(*[FadeOut(n) for n in numbers])
-        self.wait()
+        # self.play(*[FadeOut(n) for n in numbers])
+        # self.wait()
 
         # In that case, whatever the traitors do, every honest general ends up with at least 7 YES opinions, which is enough to make him output YES. Similarly, the protocol works if at least 7 honest generals start with the NO opinion.
         # [traitoři něco udělají, je pak vidět jak honest generálové skončili s 7 YES/5 NO,  8 YES/4 NO,  9 YES/3 NO, a všichni odpověděli YES]
 
-        game.majority_algorithm(self)
-        self.wait()
+        # game.majority_algorithm(self)
+        # self.wait()
 
 
 class SolutionCombine1(Scene):

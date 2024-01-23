@@ -219,27 +219,35 @@ class General(Group):
         self.receive_buffer.messages = []
         return anims
 
-    def update_opinion_to_majority(self, scene: Scene):
+    def update_opinion_to_majority(self, scene: Scene, short_version: bool = False):
         thinking_buffer = self.thinking_buffer
-        scene.play(*thinking_buffer.sort_messages())
-        msgs = thinking_buffer.messages
 
         y_cnt, n_cnt = thinking_buffer.count_regular_opinions()
         win = "Y" if y_cnt >= n_cnt else "N"
 
-        inequality_symbol = Tex("$\ge$" if win == "Y" else "$<$", color=BLACK)
-        inequality_symbol.move_to(thinking_buffer.get_center())
-        scene.play(FadeIn(inequality_symbol))
+        if not short_version:
+            scene.play(*thinking_buffer.sort_messages())
+            msgs = thinking_buffer.messages
 
-        new_opinion = Message(win).scale(4)  # Make the new opinion 4x bigger
-        new_opinion.move_to(inequality_symbol)
+            inequality_symbol = Tex("$\ge$" if win == "Y" else "$<$", color=BLACK)
+            inequality_symbol.move_to(thinking_buffer.get_center())
+            scene.play(FadeIn(inequality_symbol))
 
-        scene.play(
-            *[msg.animate.move_to(new_opinion) for msg in msgs],
-            inequality_symbol.animate.become(new_opinion.icon),
-        )
-        self.thinking_buffer.messages = []
-        scene.remove(inequality_symbol, *msgs)
+            new_opinion = Message(win).scale(4)  # Make the new opinion 4x bigger
+            new_opinion.move_to(inequality_symbol)
+
+            scene.play(
+                *[msg.animate.move_to(new_opinion) for msg in msgs],
+                inequality_symbol.animate.become(new_opinion.icon),
+            )
+            self.thinking_buffer.messages = []
+            scene.remove(inequality_symbol, *msgs)
+        else:
+            new_opinion = Message(win).scale(4)
+            new_opinion.move_to(thinking_buffer.get_center())
+            scene.play(
+                FadeIn(new_opinion), *[FadeOut(msg) for msg in thinking_buffer.messages]
+            )
         return new_opinion
 
     def update_opinion_to_supermajority_or_leader(self, scene: Scene):
@@ -646,10 +654,15 @@ class GameState(Group):
         scene.remove(*to_remove)
         self.move_all_receive_buffers_to_thinking_buffers(scene)
 
+        n_long_played = 0
         for i in range(len(self.generals)):
             if self.generals[i].is_traitor:
                 continue
-            new_opinion = self.generals[i].update_opinion_to_majority(scene)
+
+            new_opinion = self.generals[i].update_opinion_to_majority(
+                scene, short_version=n_long_played >= 3
+            )
+            n_long_played += 1
             self.update_general_opinions(scene, [i], [new_opinion])
 
     def move_all_receive_buffers_to_thinking_buffers(self, scene: Scene):
@@ -708,4 +721,15 @@ class GameState(Group):
                     for general, opinion in zip(self.generals, opinions)
                 ]
             )
+        )
+
+    def highlight_generals_with_opinion(self, scene: Scene, opinion: str):
+        scene.play(
+            *[
+                Indicate(
+                    g.opinion_text, color=g.opinion_text.get_color(), scale_factor=1.5
+                )
+                for g in self.generals
+                if not isinstance(g, Traitor) and g.opinion == opinion
+            ],
         )
