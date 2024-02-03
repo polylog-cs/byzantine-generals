@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 
 from manim import *
 
-from .util_general import SendMessage
+from .util_general import BASE00, SendMessage
 
 GENERAL_RADIUS = 0.5
 
@@ -68,8 +68,8 @@ class MessageBuffer(Group):
         self.icon = Rectangle(width=1, height=1, stroke_opacity=0.0).scale(0.75)
         self.add(self.icon)
 
-    def add_msg(self, msg: Message):
-        self.messages.append(msg)
+    def add_message(self, message: Message):
+        self.messages.append(message)
 
     def count_regular_opinions(self):
         opinions = [
@@ -118,19 +118,30 @@ class MessageBuffer(Group):
 
 class CodeWithStepping(Code):
     CODE = """for leader_id in [1, 2, 3]:
-    send my opinion to everybody (including myself)
-    if I am the leader:  # Algorithm 1
-        update opinion to majority of received messages
-        broadcast my opinion
-    compute number of YES and NO messages # Algorithm 2
-    if YES >> NO or NO >> YES:
-        update opinion to the majority of received messages
-    else:
-        update opinion to the opinion of the leader
+  send my opinion to everybody
+  if I am the leader:  # Algorithm 1
+    my opinion ← majority opinion
+    broadcast my opinion
+  count YES and NO messages # Algorithm 2
+  if YES >> NO or NO >> YES:
+    my opinion ← majority opinion
+  else:
+    my opinion ← leader opinion
 """
 
     def __init__(self, **kwargs):
-        super().__init__(code=self.CODE, language="python", **kwargs)
+        super().__init__(
+            code=self.CODE,
+            language="python",
+            # Would love to set this to False, but then highlighting lines breaks.
+            insert_line_no=True,
+            style="solarized-dark",
+            **kwargs,
+        )
+        # Manim colors the line numbers black no matter the theme, so fix that
+        for i in self.line_numbers:
+            i.set_color(BASE00)
+
         self.indicator = None
         self.rectangle = None
 
@@ -236,7 +247,7 @@ class General(Group):
         self.thinking_buffer = buffer
         self.add(buffer)
 
-    def move_receive_buffer_to_thinking_buffer(self):
+    def move_receive_buffer_to_thinking_buffer(self) -> List[Animation]:
         # Traitors don't move their receive buffer to the thinking buffer,
         # they just discard the messages.
         if self.is_traitor:
@@ -286,7 +297,8 @@ class General(Group):
             )
         return new_opinion
 
-    def update_opinion_to_supermajority_or_leader(self, scene: Scene):
+    def update_opinion_to_supermajority_or_leader(self, scene: Scene) -> Message:
+        """Returns a Message with the new opinion."""
         thinking_buffer = self.thinking_buffer
         scene.play(*thinking_buffer.sort_messages())
         msgs = thinking_buffer.messages
@@ -539,6 +551,7 @@ class GameState(Group):
 
             # Make the message icon appear from the sender's icon
             message_icon_copy = message.icon.copy()
+
             message.icon = sender.icon.copy()
 
             # Animate the message moving from the sender to the receiver.
@@ -555,10 +568,20 @@ class GameState(Group):
 
             message_icon_copy.move_to(receive_location)
             anims.append(message.icon.animate.become(message_icon_copy))
+
+            if isinstance(message, LeaderMessage):
+                # TODO(vv): handle
+                pass
+                # print("leader message")
+                # message_crown_copy = message.crown.copy().move_to(
+                #     receive_location
+                # )
+                # anims.append(FadeIn(message_crown_copy))
+
             msg_objects.append(message)
 
             message.move_to(receive_location)
-            receiver.receive_buffer.add_msg(message)
+            receiver.receive_buffer.add_message(message)
 
             to_remove.append(message.icon)
 
@@ -572,12 +595,12 @@ class GameState(Group):
     def broadcast_opinion(
         self,
         scene: Scene,
-        general_ids: int,
+        general_ids: List[int],
         send_to_self=False,
         circular_receive=False,
         circular_send=False,
         msg_class=Message,
-    ):
+    ) -> List[Message]:
         messages = []
         for general_id in general_ids:
             for i in range(len(self.generals)):
@@ -597,9 +620,7 @@ class GameState(Group):
 
         return msg_objects
 
-    def send_opinions_to(
-        self, scene: Scene, general_id: int, send_to_self: bool = False
-    ):
+    def send_opinions_to(self, general_id: int, send_to_self: bool = False):
         messages = []
         for i in range(len(self.generals)):
             if send_to_self or i != general_id:
@@ -645,7 +666,7 @@ class GameState(Group):
 
         scene.wait(0.5)
 
-        _, anims, to_remove = self.send_opinions_to(scene, leader_id, send_to_self)
+        _, anims, to_remove = self.send_opinions_to(leader_id, send_to_self)
         scene.play(*anims)
 
         scene.wait(0.5)
@@ -673,15 +694,9 @@ class GameState(Group):
         to_remove = []
 
         for i in range(len(self.generals)):
-            _, cur_anims, cur_to_remove = self.send_opinions_to(scene, i, send_to_self)
+            _, cur_anims, cur_to_remove = self.send_opinions_to(i, send_to_self)
             anims.append(AnimationGroup(*cur_anims))
             to_remove += cur_to_remove
-            # scene.play(*cur_anims)
-            # scene.remove(*to_remove)
-
-            # self.remove(self.generals[i].receive_buffer.messages[0].icon)
-            # scene.play(*self.generals[i].move_receive_buffer_to_thinking_buffer(self))
-            # anims += self.generals[i].move_receive_buffer_to_thinking_buffer()
 
         scene.play(LaggedStart(*anims, lag_ratio=0.2))
         scene.remove(*to_remove)
@@ -708,38 +723,46 @@ class GameState(Group):
         self,
         scene: Scene,
         leader_ids: List[int],
-        code: CodeWithStepping,
+        code: Optional[CodeWithStepping],
         send_to_self: bool = True,
     ):
-        for leader_id in leader_ids:
-            code.highlight_line(0, scene)
-            scene.play(self.generals[leader_id].make_leader(self.generals))
-            code.highlight_line(1, scene)
-            for i in range(len(self.generals)):
-                self.broadcast_opinion(
-                    scene,
-                    [i],
-                    send_to_self=send_to_self,
-                    circular_receive=True,
-                    circular_send=True,
-                )
+        def highlight_line(line_number: int):
+            if code is not None:
+                code.highlight_line(line_number, scene)
 
+        for leader_id in leader_ids:
+            highlight_line(0)
+            scene.play(self.generals[leader_id].make_leader(self.generals))
+
+            to_remove = []
+            highlight_line(1)
+
+            anims = []
+            to_remove = []
+
+            for i in range(len(self.generals)):
+                _, cur_anims, cur_to_remove = self.send_opinions_to(i, send_to_self)
+                anims.append(AnimationGroup(*cur_anims))
+                to_remove += cur_to_remove
+
+            scene.play(LaggedStart(*anims, lag_ratio=0.2))
+            scene.remove(*to_remove)
             self.move_all_receive_buffers_to_thinking_buffers(scene)
 
             if not self.generals[leader_id].is_traitor:
-                code.highlight_line(3, scene)
+                highlight_line(3)
                 new_opinion = self.generals[leader_id].update_opinion_to_majority(scene)
                 self.update_general_opinions(scene, [leader_id], [new_opinion])
 
             # Whether it's a trator or not, the leader broadcasts its updated opinion
-            code.highlight_line(4, scene)
+            highlight_line(4)
             self.broadcast_opinion(
                 scene, [leader_id], circular_send=True, msg_class=LeaderMessage
             )
 
             self.move_all_receive_buffers_to_thinking_buffers(scene)
 
-            code.highlight_line(5, scene)
+            highlight_line(5)
             for i in range(len(self.generals)):
                 g = self.generals[i]
                 if not g.is_traitor and not g.is_leader():

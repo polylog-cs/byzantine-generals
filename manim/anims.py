@@ -9,6 +9,7 @@ from utils.generals import (
     Crown,
     CyclicOpinionTraitor,
     GameState,
+    LeaderMessage,
     Message,
     MessageToSend,
     Player,
@@ -1238,7 +1239,7 @@ class SolutionCombine2(Scene):
         self.wait()
 
 
-class SolutionCombine3(Scene):
+class FullSolutionWithoutCode(Scene):
     def construct(self):
         rng = np.random.default_rng(0)
         game = GameState(
@@ -1248,76 +1249,95 @@ class SolutionCombine3(Scene):
                         "".join(rng.choice(["Y", "N"]) for _ in range(12))
                     )
                     if i in TRAITOR_IDS4
+                    else Player(opinion="-")
+                )
+                for i in range(len(SAMPLE_OPINIONS4))
+            ]
+        )
+        self.add(game)
+        game.set_opinions(self, SAMPLE_OPINIONS4)
+
+        # Here’s how we can do that concretely. In each of the three phases, we run both algorithms.
+        # So: first, every general sends his opinion to everybody. This allows everybody to compute what we’ll call the majority opinion. Then, the leader of that phase sends his majority opinion back to everybody as the leader’s opinion.
+
+        game.full_algorithm(self, leader_ids=[1], send_to_self=True, code=None)
+
+
+class FullSolutionDecisionRule(MovingCameraScene):
+    def construct(self):
+        rng = np.random.default_rng(0)
+        game = GameState(
+            [
+                (
+                    CyclicOpinionTraitor("".join(rng.choice(["N"]) for _ in range(12)))
+                    if i in TRAITOR_IDS4
                     else Player(opinion="Y")
                 )
                 for i in range(len(SAMPLE_OPINIONS4))
             ]
         )
         self.add(game)
+        self.wait()
+        # game.set_opinions(self, SAMPLE_OPINIONS4)
 
-        # We can do this with the help of our second protocol where everybody sends a token to everybody – in the case where all the generals agree on the same value, we will use this protocol to ensure that honest generals ignore the leader’s proposal and keep their initial opinion.
+        LEADER_ID = 9
+        self.play(game.set_leader(LEADER_ID))
 
-        # Here’s how we can do that concretely. In each of the three phases, we run both algorithms.
-        # So: first, every general sends his opinion to everybody. This allows everybody to compute what we’ll call the majority opinion. Then, the leader of that phase sends his majority opinion back to everybody as the leader’s opinion.
+        _, anims, to_remove_1 = game.send_opinions_to(1, send_to_self=True)
+        self.play(*anims)
+        self.wait()
 
-        game.set_opinions(self, SAMPLE_OPINIONS4)
-
-        code = CodeWithStepping(font_size=16)
-        code.shift(3.5 * RIGHT)
-        self.add(code)
-
-        game.full_algorithm(self, leader_ids=[1], send_to_self=True, code=code)
-
-        # [provedou se obě animace co už známe]
-
-        # So, every general has two proposals for his new opinion: the majority opinion and the leader’s opinion; which one of the two should he choose as the new opinion?
-
-        # [tohle bude brutal na animace, není mi jasné]
-
-        # Before we answer that question, let me write a short pseudocode of our algorithm as it’s no longer that simple. So, each general starts with an opinion. Then, there are three phases. In each phase, the general sends his current opinion to everybody. The leader computes the majority opinion he got and sends it back to everybody.
-        # Each general also locally computes the majority opinion.
-        # Then, he chooses either the majority opinion or the leader’s opinion as his new opinion and the question is which one to choose.
-
-        # [
-
-        # v ← your initial opinion
-        # For i in [1,2,3]:
-        # Send v to everybody
-        # If you a leader: compute majority and send that to everybody (algorithm 1)
-        #     Else: receive leader’s opinion
-        # Compute number of YES and NO received messages (algorithm 2),
-        #     compute majority opinion
-        # if YES >> NO or YES << NO
-        # v ←majority opinion
-        # otherwise
-        # v ← leader’s opinion
-        # output v
-
-        # ]
-
-        # The right choice is that whenever a general gets at least 10 YES tokens from other generals, he chooses the majority opinion, and the same for at least 10 NO tokens. This is because whenever all honest generals already agree on the same value, we know that each general receives at least 10 YES or 10 NO tokens. So, this is the case when we want to disregard the leader and just go with the majority.
-
-        # And this is our final algorithm!
-
-
-# vv: this was named SolutionCombine3, shadowing an earlier class
-class SolutionCombine4(Scene):
-    def construct(self):
-        game = GameState(
-            [
-                (
-                    CyclicOpinionTraitor(
-                        "".join(random.choice(["Y", "N"]) for _ in range(12))
-                    )
-                    if i in TRAITOR_IDS5
-                    else Player(opinion=SAMPLE_OPINIONS[i])
-                )
-                for i in range(len(SAMPLE_OPINIONS5))
-            ]
+        msg_objects, anims, to_remove_2 = game.send_messages(
+            # ["sender_id", "receiver_id", "message"]
+            messages_to_send=[MessageToSend(LEADER_ID, 1, LeaderMessage("Y"))],
+            circular_receive=False,
+            circular_send=False,
         )
-        self.add(game)
+        self.play(*anims)
+        self.wait()
 
-        code = CodeWithStepping(font_size=12)
+        self.remove(*to_remove_1, *to_remove_2)
+        self.play(*game.generals[1].move_receive_buffer_to_thinking_buffer())
+        self.wait()
+
+        self.play(
+            self.camera.auto_zoom(
+                game.generals[1].thinking_buffer.messages, margin=0.6
+            ),
+            FadeOut(game),
+        )
+        self.wait()
+        message = game.generals[1].update_opinion_to_supermajority_or_leader(self)
+        self.add(message)
+        self.wait()
+
+
+class FullSolutionWithCode(Scene):
+    def construct(self):
+        rng = np.random.default_rng(0)
+
+        players = [Player(opinion="Y") for i in range(12)]
+        # The traitors should be yes-leaning so that we have mostly YES opinions
+        # coming into the second round. Then in the second round, some players should
+        # use the majority opinion and some should use the leader's opinion (though
+        # in both cases they'll choose YES).
+        # Finally, in the third round there should be a varying number of NO opinions
+        # sent by the traitors to illustrate that they can behave arbitrarily.
+        players[0] = CyclicOpinionTraitor("YYYN")
+        players[2] = CyclicOpinionTraitor("YYN")
+
+        game = GameState(players)
+
+        code = CodeWithStepping(font_size=24)
+
+        self.play(Create(code, run_time=10))
+        self.wait()
+
+        self.play(code.animate.shift(3.5 * LEFT + 2.5 * UP).scale(0.8))
+
+        game.shift(3.3 * RIGHT)
+        self.play(FadeIn(game))
+        game.set_opinions(self, SAMPLE_OPINIONS4)
+        self.wait()
 
         game.full_algorithm(self, leader_ids=[0, 1, 2], send_to_self=True, code=code)
-        # postprocessing : stopnout na správných místech
