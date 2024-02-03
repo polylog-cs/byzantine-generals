@@ -117,8 +117,20 @@ class MessageBuffer(Group):
 
 
 class CodeWithStepping(Code):
+    CODE = """for leader_id in [1, 2, 3]:
+    send my opinion to everybody (including myself)
+    if I am the leader:  # Algorithm 1
+        update opinion to majority of received messages
+        broadcast my opinion
+    compute number of YES and NO messages # Algorithm 2
+    if YES >> NO or NO >> YES:
+        update opinion to the majority of received messages
+    else:
+        update opinion to the opinion of the leader
+"""
+
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(code=self.CODE, language="python", **kwargs)
         self.indicator = None
         self.rectangle = None
 

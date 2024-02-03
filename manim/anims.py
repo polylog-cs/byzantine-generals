@@ -239,21 +239,7 @@ class FullWithTraitors(Scene):
                     game.generals[i].animate.change_opinion(opinions[i]), run_time=0.2
                 )
 
-        code = CodeWithStepping(
-            code="""for leader_id in [1, 2, 3]:
-    send my opinion to everybody (including myself)
-    if I am the leader:  # Algorithm 1
-        update opinion to majority of received messages
-        broadcast my opinion
-    compute number of YES and NO messages # Algorithm 2
-    if YES >> NO or NO >> YES:
-        update opinion to the majority of received messages
-    else:
-        update opinion to the opinion of the leader
-""",
-            language="python",
-            font_size=12,
-        )
+        code = CodeWithStepping(font_size=12)
         code.shift(3.5 * RIGHT)
         self.add(code)
 
@@ -337,7 +323,7 @@ class Setup1(Scene):
 
         # add the generals from the game one by one,
         self.play(
-            Succession(
+            LaggedStart(
                 *[FadeIn(game.generals[i].clipart) for i in range(len(game.generals))],
                 lag_ratio=0.3,
             )
@@ -394,7 +380,7 @@ class Setup1(Scene):
             for i in range(len(game.generals))
         ]
         self.play(
-            Succession(
+            LaggedStart(
                 *[
                     AnimationGroup(
                         FadeIn(b),
@@ -658,7 +644,7 @@ class Setup2(Scene):
         # every general gets his opinion in succession, also, the first explanation text appears
         self.play(
             AnimationGroup(
-                Succession(
+                LaggedStart(
                     *[
                         game.generals[i].animate.change_opinion(SAMPLE_OPINIONS[i])
                         for i in range(len(game.generals))
@@ -1227,24 +1213,21 @@ class SolutionCombine2(Scene):
         # [animace obojího]
 
         # generals change opinions to Y
-        for i in range(len(game.generals)):
-            if i not in TRAITOR_IDS4:
-                self.play(game.generals[i].animate.change_opinion("Y"))
+        game.set_opinions(self, ["Y"] * len(game.generals))
 
         locks = [
             ImageMobject("img/lock.png")
             .scale_to_fit_width(game.generals[i].icon.get_width() / 1.5)
-            .next_to(game.generals[i].icon, RIGHT, buff=-0.3)
+            .next_to(game.generals[i].icon, RIGHT, buff=-0.5)
             .shift(0.3 * DOWN)
             for i in range(len(game.generals))
             if i not in TRAITOR_IDS4
         ]
-        self.play(
-            Succession(
-                *[FadeIn(lock) for lock in locks],
-                lag_ratio=0.3,
-            )
-        )
+
+        # For some reason, LaggedStart + FadeIn only fades in the first lock
+        # and the others appear instantly. Let's just fade them all in at once.
+        self.play(*[FadeIn(lock) for lock in locks])
+
         self.play(game.generals[2].make_leader(game.generals))
         self.wait()
 
@@ -1274,33 +1257,14 @@ class SolutionCombine3(Scene):
 
         # We can do this with the help of our second protocol where everybody sends a token to everybody – in the case where all the generals agree on the same value, we will use this protocol to ensure that honest generals ignore the leader’s proposal and keep their initial opinion.
 
-        # run majority algo
-        game.majority_algorithm(self)
-        self.wait()
-
-        # [není mi jasné]
-
         # Here’s how we can do that concretely. In each of the three phases, we run both algorithms.
         # So: first, every general sends his opinion to everybody. This allows everybody to compute what we’ll call the majority opinion. Then, the leader of that phase sends his majority opinion back to everybody as the leader’s opinion.
 
-        for i in range(len(game.generals)):
-            if i not in TRAITOR_IDS4:
-                self.play(game.generals[i].animate.change_opinion(SAMPLE_OPINIONS4[i]))
-        code = CodeWithStepping(
-            code="""for leader_id in [1, 2, 3]:
-    send my opinion to everybody (including myself)
-    if I am the leader:  # Algorithm 1
-        update opinion to majority of received messages
-        broadcast my opinion
-    compute number of YES and NO messages # Algorithm 2
-    if YES >> NO or NO >> YES:
-        update opinion to the majority of received messages
-    else:
-        update opinion to the opinion of the leader
-""",
-            language="python",
-            font_size=12,
-        )
+        game.set_opinions(self, SAMPLE_OPINIONS4)
+
+        code = CodeWithStepping(font_size=16)
+        code.shift(3.5 * RIGHT)
+        self.add(code)
 
         game.full_algorithm(self, leader_ids=[1], send_to_self=True, code=code)
 
@@ -1353,21 +1317,7 @@ class SolutionCombine4(Scene):
         )
         self.add(game)
 
-        code = CodeWithStepping(
-            code="""for leader_id in [1, 2, 3]:
-    send my opinion to everybody (including myself)
-    if I am the leader:  # Algorithm 1
-        update opinion to majority of received messages
-        broadcast my opinion
-    compute number of YES and NO messages # Algorithm 2
-    if YES >> NO or NO >> YES:
-        update opinion to the majority of received messages
-    else:
-        update opinion to the opinion of the leader
-""",
-            language="python",
-            font_size=12,
-        )
+        code = CodeWithStepping(font_size=12)
 
         game.full_algorithm(self, leader_ids=[0, 1, 2], send_to_self=True, code=code)
         # postprocessing : stopnout na správných místech
