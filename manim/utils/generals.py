@@ -614,6 +614,11 @@ class GameState(Group):
                 self.generals[general_id].animate.change_opinion(opinion.message)
             )
             anims.append(opinion.icon.animate.become(new_icon))
+
+            # The opinion was also sent via `broadcast_opinion` and stored in the receive
+            # buffer, so make sure we remove it
+            self.generals[general_id].receive_buffer.messages = []
+
         scene.play(*anims)
         scene.remove(*opinions, *new_icons)
 
