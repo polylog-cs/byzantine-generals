@@ -435,7 +435,7 @@ class BlockchainForConsensus(Scene):
         message_pairs = [
             ("General #2", "OK guys let’s vote, I vote YES"),
             ("General #4", "sounds good, I vote YES"),
-            ("General #7", "I vote NO"),
+            ("General #5", "I vote NO"),
             ("General #1", "Ok, so that's 9 votes for YES, let's attack."),
             ("General #3", "Ok, you got it"),
             ("General #4", "okok"),
@@ -443,10 +443,13 @@ class BlockchainForConsensus(Scene):
 
         chat = ChatWindow().shift(LEFT * 4 + DOWN * 3)
 
-        for pair in message_pairs:
-            message = ChatMessage(pair[0], pair[1], with_verification=True).shift(
-                DOWN * 3 + RIGHT * 2
-            )
+        for sender, message_text in message_pairs:
+            message = ChatMessage(
+                sender,
+                message_text,
+                with_verification=True,
+                sender_color=ChatWindow.SENDER_COLORS[sender],
+            ).shift(DOWN * 3 + RIGHT * 2)
             self.play(FadeIn(message), run_time=0.5)
             self.play(chat.copy_messages([message], keep_original=False))
             chat.messages_group.add(message)
@@ -509,6 +512,22 @@ class BlockchainRandomLeader(Scene):
             + rng.choice(range(4), size=30).tolist()
         )
 
-        for leader_id in leader_order:
+        for i in range(30):
+            if i < 8:
+                leader_id = i % 4
+            else:
+                leader_id = rng.choice(len(state.players))
+
             if leader_id != state.leader_id:
-                state.make_leader(leader_id, self)
+                state.make_leader(leader_id, self, use_black_crown=False)
+
+            if i == 5:
+                player = BlockchainPlayer().shift(RIGHT)
+                self.play(FadeIn(player))
+                state.players.append(player)
+
+            if i == 12:
+                fades = [FadeOut(state.players[2]), FadeOut(state.players[3])]
+                state.players.pop(3)
+                state.players.pop(2)
+                self.play(*fades)
