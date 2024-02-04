@@ -287,9 +287,13 @@ class TraitorGroupChat(Scene):
         util_general.default()
 
         message_pairs = [
-            ("General #2", "OK guys let’s vote, I vote YES"),
-            ("General #4", "sounds good, I vote YES"),
-            ("General #7", "I vote NO"),
+            # Use a list comprehension because otherwise we mix 1-based and 0-based indices
+            (f"General #{i+1}", message)
+            for i, message in [
+                (1, "anybody up for invading tmr?"),
+                (3, "sounds good"),
+                (0, "idk im kinda tired"),
+            ]
         ]
 
         chat = ChatWindow()
@@ -309,16 +313,16 @@ class TraitorGroupChat(Scene):
         messages_per_round = [
             [
                 state.make_message_from_general(
-                    0, "Totally real message", alleged_general_id=1
+                    0, "totally real message", alleged_general_id=1
                 ),
-                state.make_message_from_general(2, "He might be the new rizz king"),
+                state.make_message_from_general(2, "good morning"),
             ],
         ]
 
         # vv: This for loop is unnecessary here, but keeping it now in case
         # we want more rounds later
         for leader_id, messages_to_add in enumerate(messages_per_round):
-            state.make_leader(leader_id, self)
+            state.make_leader(leader_id, self, use_black_crown=False)
 
             for message in messages_to_add:
                 self.play(FadeIn(message))
@@ -358,8 +362,16 @@ class OtherLeaderAttacks(Scene):
         leader = BlockchainPlayer().scale(1.5)
         leader.shift(LEFT * 6)
 
+        # It's difficult to scale the crown if we don't do this hack with first passing
+        # the crown to a fake leader
+        fake_leader = BlockchainPlayer().scale(1.5).shift(LEFT * 10)
+        self.play(fake_leader.make_leader(use_black_crown=False))
+        fake_leader.crown.scale(1.5)
+
         self.play(FadeIn(leader))
-        self.play(leader.make_leader())
+        self.play(
+            leader.make_leader(generals=[leader, fake_leader], use_black_crown=False)
+        )
 
         chat = ChatWindow().shift(LEFT * 2)
         chat.add_message(ChatMessage(sender="General #1", message="Foo"), action="add")
@@ -368,21 +380,22 @@ class OtherLeaderAttacks(Scene):
         self.play(FadeIn(chat))
         self.wait()
 
-        # Shuffle messages
-        message_positions = [message.get_center() for message in chat.all_messages]
-        self.play(
-            chat.all_messages[0].animate.move_to(message_positions[1]),
-            chat.all_messages[1].animate.move_to(message_positions[2]),
-            chat.all_messages[2].animate.move_to(message_positions[0]),
-        )
-        self.wait()
-        # Shuffle messages back
-        self.play(
-            chat.all_messages[0].animate.move_to(message_positions[0]),
-            chat.all_messages[1].animate.move_to(message_positions[1]),
-            chat.all_messages[2].animate.move_to(message_positions[2]),
-        )
-        self.wait()
+        if False:  # Doesn't match the voiceover
+            # Shuffle messages
+            message_positions = [message.get_center() for message in chat.all_messages]
+            self.play(
+                chat.all_messages[0].animate.move_to(message_positions[1]),
+                chat.all_messages[1].animate.move_to(message_positions[2]),
+                chat.all_messages[2].animate.move_to(message_positions[0]),
+            )
+            self.wait()
+            # Shuffle messages back
+            self.play(
+                chat.all_messages[0].animate.move_to(message_positions[0]),
+                chat.all_messages[1].animate.move_to(message_positions[1]),
+                chat.all_messages[2].animate.move_to(message_positions[2]),
+            )
+            self.wait()
 
         copies = [[m.copy() for m in chat.all_messages] for _ in range(2)]
 

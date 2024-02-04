@@ -145,7 +145,7 @@ class ChatMessage(VGroup):
 class ChatWindow(VGroup):
     SENDER_COLORS_ORDER = [
         util_general.ORANGE,
-        util_general.RED,
+        util_general.GREEN,
         util_general.MAGENTA,
         util_general.BLUE,
         util_general.CYAN,
