@@ -11,9 +11,6 @@ GENERAL_CIRCLE_SIZE = 2.2
 GENERAL_THINKING_BUFFER_RADIUS = 3.5
 GENERAL_RECEIVE_BUFFER_RADIUS = 1.3
 
-CROWN_SVG = "img/crown.svg"
-CROWN_OFFSET = 1.1  # How much is the crown shifted up from the icon
-
 MESSAGE_RADIUS = 0.05
 
 MESSAGE_BUFFER_COLUMNS = 2
@@ -44,12 +41,20 @@ class Message(Group):
             self.add(self.clipart)
 
 
-class Crown(SVGMobject):
+# NOTE(vv): An older version of the crown. To be removed, but a lot of the animations are already
+#   rendered with this version so we keep it in case we only need to do minor changes.
+class BlackCrown(SVGMobject):
     def __init__(self, parent: Mobject):
-        super().__init__(CROWN_SVG)
+        super().__init__("img/crown.svg")
         self.scale(parent.width / self.width)
-        self.move_to(parent)
-        self.shift(UP * (parent.height / 2 + self.height / 2) * CROWN_OFFSET)
+
+        self.set_z_index(100)  # Make sure the crown is always on top
+
+
+class Crown(ImageMobject):
+    def __init__(self, parent: Mobject):
+        super().__init__("img/crown_2.png")
+        self.scale(0.28)
 
         self.set_z_index(100)  # Make sure the crown is always on top
 
@@ -57,7 +62,7 @@ class Crown(SVGMobject):
 class LeaderMessage(Message):
     def __init__(self, message: str):
         super().__init__(message)
-        self.crown = Crown(self)
+        self.crown = BlackCrown(self)
         self.add(self.crown)
 
 
@@ -185,12 +190,14 @@ class General(Group):
             radius=GENERAL_RADIUS,
             color=icon_color,
             fill_color=icon_color,
-            fill_opacity=1 if fill_icon else 0,
+            # Don't show the circle if we're using the clipart.
+            fill_opacity=1 if fill_icon and not with_clipart else 0,
+            stroke_width=0 if with_clipart else 4,
         )
         self.add(self.icon)
 
         if with_clipart:
-            self.clipart = ImageMobject("img/general.png").scale(0.5)
+            self.clipart = ImageMobject("img/icon_general_2.png").scale(0.25)
             self.add(self.clipart)
 
         self.crown = None
@@ -201,7 +208,9 @@ class General(Group):
     def is_leader(self) -> bool:
         return self.crown is not None
 
-    def make_leader(self, generals: Optional[list["General"]] = None) -> Animation:
+    def make_leader(
+        self, generals: Optional[list["General"]] = None, use_black_crown: bool = True
+    ) -> Animation:
         """Pass the crown to this general.
 
         If `generals` is given, moves the crown visually from the current leader
@@ -218,17 +227,20 @@ class General(Group):
                     current_leader = g
                     break
 
+        CROWN_BUFFER = MED_LARGE_BUFF if use_black_crown else 0.4
+
         if current_leader is not None:
             old_crown = current_leader.crown
             self.crown = old_crown
             current_leader.crown = None
             return old_crown.animate.next_to(
-                self.get_center(), direction=UP, buff=MED_LARGE_BUFF
+                self.get_center(), direction=UP, buff=CROWN_BUFFER
             )
         else:
             # No other generals given. Simply become the leader.
-            self.crown = Crown(self.icon).next_to(
-                self.get_center(), direction=UP, buff=MED_LARGE_BUFF
+            CrownConstructor = BlackCrown if use_black_crown else Crown
+            self.crown = CrownConstructor(self.icon).next_to(
+                self.get_center(), direction=UP, buff=CROWN_BUFFER
             )
             return FadeIn(self.crown)
 
@@ -366,22 +378,16 @@ class Player(General):
         super().__init__(icon_color=GRAY, fill_icon=False, with_clipart=with_clipart)
         self.opinion = opinion
         self.is_traitor = False
-        self.icon = Circle(radius=GENERAL_RADIUS)
         self.opinion_text = Tex(opinion)
         self.change_opinion(opinion)
         self.add(self.opinion_text)
-        self.add(self.icon)
 
     def get_color(self):
-        return (
-            GREEN
-            if self.opinion == "Y"
-            else RED
-            if self.opinion == "N"
-            else GRAY
-            if self.opinion == "-"
-            else PINK
-        )  # "#333" # TODO weird thing here
+        return {
+            "Y": GREEN,
+            "N": RED,
+            "-": GRAY,
+        }.get(self.opinion, PINK)
 
     def change_opinion(self, opinion: str):
         self.opinion = opinion

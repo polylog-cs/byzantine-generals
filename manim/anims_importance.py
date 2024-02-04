@@ -162,9 +162,13 @@ class BlockchainGroupChat(Scene):
         util_general.default()
 
         message_pairs = [
-            ("General #2", "OK guys let’s vote, I vote YES"),
-            ("General #4", "sounds good, I vote YES"),
-            ("General #7", "I vote NO"),
+            # Use a list comprehension because otherwise we mix 1-based and 0-based indices
+            (f"General #{i+1}", message)
+            for i, message in [
+                (1, "anybody up for invading tmr?"),
+                (3, "sounds good"),
+                (0, "idk im kinda tired"),
+            ]
         ]
 
         chat = ChatWindow()
@@ -183,23 +187,23 @@ class BlockchainGroupChat(Scene):
 
         messages_per_round = [
             [
-                state.make_message_from_general(1, "Livvy rizzed up baby Gronk"),
-                state.make_message_from_general(2, "He might be the new rizz king"),
+                state.make_message_from_general(1, "guys cmon"),
+                state.make_message_from_general(2, "good morning"),
             ],
             # Different #messages in each round to show that it doesn't always have
             # to be a fixed number (do we want this?)
             [
-                state.make_message_from_general(1, "Foo"),
-                state.make_message_from_general(3, "Bar"),
-                state.make_message_from_general(0, "Baz"),
+                state.make_message_from_general(1, "cmon let's do it"),
+                state.make_message_from_general(2, "I'm thinking about thos beans"),
+                state.make_message_from_general(0, "i'm busy :("),
             ],
             [
-                state.make_message_from_general(1, "Quux"),
+                state.make_message_from_general(1, "eh ok let's skip"),
             ],
         ]
 
         for leader_id, messages_to_add in zip(range(3), messages_per_round):
-            state.make_leader(leader_id, self)
+            state.make_leader(leader_id, self, use_black_crown=False)
 
             for message in messages_to_add:
                 self.play(FadeIn(message))

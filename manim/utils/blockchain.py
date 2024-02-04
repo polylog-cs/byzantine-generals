@@ -81,6 +81,7 @@ class BlockchainState(Group):
             f"General #{alleged_general_id+1}",
             message,
             tail_up=general_id in [0, 1],
+            sender_color=ChatWindow.SENDER_COLORS[f"General #{alleged_general_id+1}"],
         )
         chat_message.next_to(
             self.players[general_id], direction=general_data["next_to_direction"]
@@ -88,9 +89,13 @@ class BlockchainState(Group):
 
         return chat_message
 
-    def make_leader(self, leader_id: int, scene: Scene):
+    def make_leader(self, leader_id: int, scene: Scene, use_black_crown: bool = True):
         self.leader_id = leader_id
-        scene.play(self.players[leader_id].make_leader(generals=self.players))
+        scene.play(
+            self.players[leader_id].make_leader(
+                generals=self.players, use_black_crown=use_black_crown
+            )
+        )
 
     def send_block_to_other_players(
         self, messages_to_add: list[ChatMessage], scene: Scene
@@ -99,11 +104,11 @@ class BlockchainState(Group):
         scene.play(
             LaggedStart(
                 *[
-                    self.players[i].chat_window.copy_messages(
-                        messages_to_add, keep_original=True
-                    )
-                    for i in range(4)
-                    if i != self.leader_id
+                    # Go clockwise from the leader.
+                    self.players[
+                        (self.leader_id + i + 1) % 4
+                    ].chat_window.copy_messages(messages_to_add, keep_original=True)
+                    for i in range(3)
                 ],
                 lag_ratio=0.5,
             )
@@ -121,4 +126,3 @@ class BlockchainState(Group):
                 )
 
         scene.play(*color_change_animations)
-        scene.wait(1)

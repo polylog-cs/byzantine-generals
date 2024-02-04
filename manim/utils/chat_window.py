@@ -143,6 +143,17 @@ class ChatMessage(VGroup):
 
 
 class ChatWindow(VGroup):
+    SENDER_COLORS_ORDER = [
+        util_general.ORANGE,
+        util_general.RED,
+        util_general.MAGENTA,
+        util_general.BLUE,
+        util_general.CYAN,
+    ]
+    SENDER_COLORS = {
+        f"General #{i + 1}": color for i, color in enumerate(SENDER_COLORS_ORDER)
+    }
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Mobjects don't keep track of their scale, so when we scale the chat window
@@ -150,13 +161,6 @@ class ChatWindow(VGroup):
         # ourselves.
         self.messages_scale = 1.0
 
-        self.sender_colors = [
-            util_general.ORANGE,
-            util_general.RED,
-            util_general.MAGENTA,
-            util_general.BLUE,
-            util_general.CYAN,
-        ]
         self.senders = []
 
         self.messages_group = VGroup()
@@ -198,7 +202,7 @@ class ChatWindow(VGroup):
             self.senders.append(message.sender)
 
         # Make the message properties (color, scale, position) fit the ChatWindow
-        sender_color = self.sender_colors[self.senders.index(message.sender)]
+        sender_color = self.SENDER_COLORS[message.sender]
         message.sender_text.set_color(sender_color)
         message.scale(self.messages_scale).move_to(position, aligned_edge=LEFT)
 
