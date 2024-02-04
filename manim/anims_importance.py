@@ -531,3 +531,35 @@ class BlockchainRandomLeader(Scene):
                 state.players.pop(3)
                 state.players.pop(2)
                 self.play(*fades)
+
+
+class ComparisonTable(Scene):
+    def construct(self):
+        util_general.default()
+
+        table = Table(
+            [
+                ["Ad-hoc approach", "Blockchain approach"],
+                [
+                    "Similar to\ndatabase synchronization",
+                    "Similar to\ncryptocurrencies",
+                ],
+                ["No assumption on traitors", "Traitors cannot break RSA"],
+                ["Works for <n/4 traitors", "Works for <n/2 traitors\n(best possible)"],
+            ],
+            element_to_mobject_config={"alignment": "center"},
+        ).scale(0.8)
+
+        self.play(Create(table.elements[:2]), Create(table.vertical_lines[0]))
+
+        for row in range(1, table.row_dim):
+            self.wait(0.5)
+            # For row 3, reveal the right cell first to match the voiceover
+            order = [0, 1] if row != 3 else [1, 0]
+
+            self.play(Create(table.horizontal_lines[row - 1]))
+            self.play(Create(table.elements[row * table.col_dim + order[0]]))
+            self.wait(0.5)
+            self.play(Create(table.elements[row * table.col_dim + order[1]]))
+
+        self.wait()
