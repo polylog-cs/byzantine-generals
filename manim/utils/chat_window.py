@@ -73,7 +73,7 @@ class ChatMessage(VGroup):
             self.header_group.remove(self.verification)
 
         bubble_rectangle = RoundedRectangle(
-            corner_radius=0.5,
+            corner_radius=0.5 if sender != "" else 0.3,
             width=width,
             height=height,
             fill_color=background_color,
@@ -111,7 +111,7 @@ class ChatMessage(VGroup):
         # We'll be `Union()`-ing this with the rectangle later and Union
         # is sensitive to the vertex order. If they're in the wrong order,
         # we get a XOR of the tail and the bubble instead of a union.
-        if tail_up:
+        if int(tail_up) + int(tail_right) == 1:
             vertices.reverse()
 
         tail = Polygon(

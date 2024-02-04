@@ -1341,3 +1341,31 @@ class FullSolutionWithCode(Scene):
         self.wait()
 
         game.full_algorithm(self, leader_ids=[0, 1, 2], send_to_self=True, code=code)
+
+
+class Thumbnail(Scene):
+    def construct(self):
+        self.add(
+            Text("Byzantine Generals", color=TEXT_COLOR).scale(2.3).shift(UP * 2.5)
+        )
+        player1 = (
+            Player(with_clipart=True).set_color(GREEN).shift(LEFT * 5 + DOWN).scale(2)
+        )
+        self.add(player1)
+        self.add(
+            ChatMessage(sender="", message="YES")
+            .scale(2)
+            .next_to(player1, RIGHT)
+            .shift(UP)
+        )
+
+        player2 = (
+            Player(with_clipart=True).set_color(RED).shift(RIGHT * 5 + DOWN).scale(2)
+        )
+        self.add(player2)
+        self.add(
+            ChatMessage(sender="", message="NO", tail_right=True)
+            .scale(2)
+            .next_to(player2, LEFT)
+            .shift(UP)
+        )
