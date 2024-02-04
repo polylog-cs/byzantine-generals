@@ -8,3 +8,6 @@ The scenario is that a group of generals are surrounding a city, and they must c
 
 - Server icon: https://openverse.org/image/bf320d73-27f1-4069-bcfb-adda0a731424?q=server%20icon
 - Fire icon: the iOS flame emoji
+- Leslie Lamport: https://cdn.britannica.com/84/205184-050-A3025C92/Leslie-Lamport-2014.jpg
+- LaTex book cover: https://www.amazon.com/LaTeX-Document-Preparation-System-2nd/dp/0201529831
+- lamport-turing-award.jpg: https://www.facebook.com/AssociationForComputingMachinery/photos/a.450674248151/10158147852133152/?type=3
