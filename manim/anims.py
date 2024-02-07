@@ -3,6 +3,7 @@ from pathlib import Path
 
 from manim import *
 
+from utils import util_general
 from utils.chat_window import ChatMessage, ChatWindow
 from utils.generals import (
     CodeWithStepping,
@@ -18,10 +19,12 @@ from utils.generals import (
 from utils.util_cliparts import *
 from utils.util_general import *
 
+util_general.disable_rich_logging()
+
 # Vasek's constants for the scenes
 SAMPLE_OPINIONS = ["Y", "N", "Y", "N", "Y", "N", "N", "Y", "N", "Y", "N", "Y"]
 GAME_SHIFT = 2 * LEFT
-TRAITOR_IDS = [3, 5]
+TRAITOR_IDS = [2, 9]
 
 SAMPLE_OPINIONS2 = ["Y", "N", "Y", "N", "Y", "N", "N", "Y", "Y", "Y", "N", "Y"]
 TRAITOR_IDS2 = [2, 4]
@@ -130,13 +133,12 @@ class Setup1(Scene):
         game = GameState(
             [Player(with_clipart=True) for i in range(len(SAMPLE_OPINIONS))]
         )
-        game.shift(GAME_SHIFT)
 
         # add the generals from the game one by one,
         self.play(
             LaggedStart(
                 *[FadeIn(game.generals[i].clipart) for i in range(len(game.generals))],
-                lag_ratio=0.3,
+                lag_ratio=0.1,
             )
         )
         self.wait(0.5)
@@ -144,34 +146,45 @@ class Setup1(Scene):
         # Each player plays one general in a camp outside a city.
 
         # image of the city
-        city = ImageMobject("img/city.png").scale(0.5).shift(game.get_center())
+        city = (
+            ImageMobject("img/city_3.png")
+            .scale(0.8)
+            .shift(game.get_center() + UP * 0.1)
+        )
         self.play(FadeIn(city))
         self.wait()
 
         # The generals are trying to conquer the city, but to be successful, they all have to attack at the same time.
+        # Also show the "wait" aka "no" option by moving the generals away from the city
 
-        # all generals at once move a bit towards the city, then back
-        self.play(
-            AnimationGroup(
-                *[
-                    game.generals[i].clipart.animate.shift(
-                        -0.5 * game.circle_position(i)
-                    )
-                    for i in range(len(game.generals))
-                ],
+        for attack in [True, False]:
+            movement = -0.5 if attack else 0.5
+
+            # all generals at once move a bit towards the city, then back
+            self.play(
+                AnimationGroup(
+                    *[
+                        game.generals[i].clipart.animate.shift(
+                            movement * game.circle_position(i)
+                        )
+                        for i in range(len(game.generals))
+                    ],
+                )
             )
-        )
-        self.play(
-            AnimationGroup(
-                *[
-                    game.generals[i].clipart.animate.shift(
-                        0.5 * game.circle_position(i)
-                    )
-                    for i in range(len(game.generals))
-                ],
+            if not attack:
+                self.wait(1)
+
+            self.play(
+                AnimationGroup(
+                    *[
+                        game.generals[i].clipart.animate.shift(
+                            -movement * game.circle_position(i)
+                        )
+                        for i in range(len(game.generals))
+                    ],
+                )
             )
-        )
-        self.wait()
+            self.wait()
 
         # Should they try to attack tomorrow? Every general has some opinion on that
 
@@ -179,26 +192,41 @@ class Setup1(Scene):
         cliparts = Group(*[game.generals[i].clipart for i in range(len(game.generals))])
         for c in cliparts:
             c.save_state()
-        bubbles = [
-            SVGMobject("img/bubble_say.svg")
-            .scale(0.5)
-            .next_to(game.generals[i].clipart, RIGHT)
-            .shift(0.3 * UP)
-            for i in range(len(game.generals))
-        ]
-        letters = [
-            Tex(SAMPLE_OPINIONS[i], color=TEXT_COLOR).scale(0.5).move_to(bubbles[i])
-            for i in range(len(game.generals))
-        ]
+
+        no_bubbles, orig_bubbles = [], []
+        bubbles = []
+        for i, opinion in enumerate(SAMPLE_OPINIONS):
+            delta = game.generals[i].clipart.get_center() - game.get_center()
+            delta = normalize(delta)
+
+            # not very elegant, but it works
+            is_right = i in range(6)
+            is_up = i in [0, 1, 2, 9, 10, 11]
+
+            def make_message(opinion: str, scale: float):
+                return (
+                    ChatMessage(
+                        sender="",
+                        message=opinion,
+                        tail_right=not is_right,
+                        tail_up=not is_up,
+                    )
+                    # SVGMobject("img/bubble_say.svg")
+                    .scale(scale)
+                    .move_to(game.generals[i].clipart.get_center())
+                    .shift(
+                        0.9 * (UP if is_up else DOWN)
+                        + 0.9 * (RIGHT if is_right else LEFT)
+                    )
+                )
+
+            bubbles.append(make_message(opinion, scale=0.9))
+            no_bubbles.append(make_message("N", scale=1.1))
+            orig_bubbles.append(make_message(opinion, scale=0.9))
+
         self.play(
             LaggedStart(
-                *[
-                    AnimationGroup(
-                        FadeIn(b),
-                        FadeIn(l),
-                    )
-                    for b, l in zip(bubbles, letters)
-                ],
+                *[FadeIn(b) for b in bubbles],
                 lag_ratio=0.3,
             )
         )
@@ -223,202 +251,77 @@ class Setup1(Scene):
 
         # [animace jak se Y/N změní na samá Y a pak zpět]
 
+        self.play(
+            LaggedStart(
+                *[b.animate.become(yb) for b, yb in zip(bubbles, no_bubbles)],
+                lag_ratio=0.1,
+            )
+        )
+        self.wait()
+
+        self.play(
+            LaggedStart(
+                *[b.animate.become(ob) for b, ob in zip(bubbles, orig_bubbles)],
+                lag_ratio=0.1,
+            )
+        )
+        self.wait()
+
         # There are two issues that are standing in their way:
 
         # First, the generals don’t have the option to get together as a group or use some kind of group chat application.
         # all generals shift together to the right where they make a block 4x3
 
-        # positions = [game.generals[i].get_center() for i in range(len(game.generals))]
-        # # animate generals so that they are in a table 4x3
-
-        # self.play(
-        #     AnimationGroup(
-        #         cliparts.animate.arrange_in_grid(rows=3, cols=4, buff=0).next_to(city, RIGHT, buff=1),
-        #         *[FadeOut(bubble) for bubble in bubbles],
-        #         *[FadeOut(l) for l in letters],
-        #     )
-        # )
-        # self.wait()
-        # # we cross the block with a big red cross
-        # cross = Text("×", color=RED, font_size=150).move_to(cliparts.get_center())
-        # self.play(
-        #     FadeIn(cross)
-        # )
-        # self.wait()
-        # self.play(
-        #     FadeOut(cross),
-        #     *[c.animate.restore() for c in cliparts],
-        # )
-        # self.wait()
-
-        message_pairs = [
-            ("General #2", "Let's make a vote"),
-            ("General #4", "I vote YES. "),
-            ("General #7", "I vote NO."),
-        ]
-
-        chat = ChatWindow().next_to(game, RIGHT, buff=MED_SMALL_BUFF)
-
-        for pair in message_pairs:
-            self.play(chat.add_message(ChatMessage(sender=pair[0], message=pair[1])))
-            self.wait()
-
-        # remove the chat window
-        self.play(FadeOut(chat))
-        self.wait()
-        return
-
         # Each general has to stay in his camp and in each round, he can only send a direct message to each other general.
 
-        id = 3
-        # general with index id gets a bit bigger and shifts a bit outside of the circle
-        self.play(
-            AnimationGroup(
-                game.generals[id]
-                .clipart.animate.scale(1.5)
-                .shift(2 * game.circle_position(id)),
-            )
-        )
-        self.wait()
+        rng = np.random.default_rng(1)
+        for it in range(8):
+            while True:
+                i, j = rng.choice(range(len(game.generals)), size=2, replace=False)
+                # the animation looks bad if the generals are too close to each other
+                if 2 < abs(max(i, j) - min(i, j)) < 10:
+                    break
 
-        # the general then sends a message to all other generals
-        # [generál pošle obálku pár dalším]
-
-        messages_from = []
-        messages_to = []
-        for i in range(len(game.generals)):
-            if i != id:
-                messages_from.append(MessageToSend(id, i, Message("hi", clipart=True)))
-                messages_to.append(MessageToSend(i, id, Message("hi", clipart=True)))
-
-        for messages in [messages_from, messages_to]:
             game.send_messages_low_tech(
                 self,
-                messages,
+                [MessageToSend(i, j, Message(SAMPLE_OPINIONS[i], clipart=True))],
             )
-            self.wait()
 
-        # the icon of the special general scales back and joins the circle again
-
-        self.play(
-            AnimationGroup(
-                game.generals[id]
-                .clipart.animate.scale(1 / 1.5)
-                .shift(-2 * game.circle_position(id)),
-            )
-        )
-        self.wait()
         # The second reason why this is going to be hard is that two of the generals are secretly plotting together against the rest - I will call these two traitors. Whatever strategy you come up with for the honest generals to play, the traitors know this strategy and will try to break it.
         # [traitoři jsou generálové kterým narostou rohy, nebo se změní clipart na čertíka]
 
         # traitor generals are replaced with a traitor image
 
         self.play(
-            AnimationGroup(
-                *[
-                    game.generals[id]
-                    .clipart.animate.scale(1.5)
-                    .shift(2 * game.circle_position(id))
-                    for id in TRAITOR_IDS
-                ],
-            )
+            *[
+                game.generals[id]
+                .clipart.animate.scale(1.5)
+                .shift(2 * game.circle_position(id))
+                for id in TRAITOR_IDS
+            ],
+            *[FadeOut(bubbles[i]) for i in TRAITOR_IDS],
         )
         self.wait()
         traitor_pics = [
-            ImageMobject("img/traitor.png")
+            ImageMobject("img/icon_traitor_2.png")
             .scale_to_fit_width(game.generals[id].clipart.get_width())
             .move_to(game.generals[id].clipart)
             for id in TRAITOR_IDS
         ]
         self.play(
-            AnimationGroup(
-                *[
-                    game.generals[id].clipart.animate.become(pic)
-                    for id, pic in zip(TRAITOR_IDS, traitor_pics)
-                ],
-                *[FadeOut(bubbles[i]) for i in TRAITOR_IDS],
-                *[FadeOut(letters[i]) for i in TRAITOR_IDS],
-            )
-        )
-        self.wait()
-        self.play(
-            AnimationGroup(
-                *[
-                    game.generals[id]
-                    .clipart.animate.scale(1 / 1.5)
-                    .shift(-2 * game.circle_position(id))
-                    for id in TRAITOR_IDS
-                ],
-            )
-        )
-        self.wait()
-
-        # So these will be the obstacles:
-        # First: only direct messages.
-
-        # we generate a few random pairs of generals and send messages between them
-
-        num_pairs = 10
-        pairs = []
-        for i in range(num_pairs):
-            pairs.append(
-                (
-                    random.randint(0, len(game.generals) - 1),
-                    random.randint(0, len(game.generals) - 1),
-                )
-            )
-            if pairs[-1][0] == pairs[-1][1]:
-                pairs.pop()
-
-        messages = []
-        for pair in pairs:
-            messages.append(
-                MessageToSend(pair[0], pair[1], Message("hi", clipart=True))
-            )
-
-        # TODO add a parameter lag ratio?
-        game.send_messages_low_tech(
-            self,
-            messages,
-        )
-
-        #  Second: two secret traitors.
-
-        # the traitor icons scale up and then scale back down
-
-        self.play(
-            AnimationGroup(
-                *[game.generals[i].clipart.animate.scale(1.5) for i in TRAITOR_IDS],
-            )
-        )
-        self.wait()
-        self.play(
-            AnimationGroup(
-                *[game.generals[i].clipart.animate.scale(1 / 1.5) for i in TRAITOR_IDS],
-            )
-        )
-        self.wait()
-
-        # fadeout
-        self.play(
-            FadeOut(city),
             *[
-                FadeOut(bubbles[i])
-                for i in range(len(game.generals))
-                if i not in TRAITOR_IDS
+                game.generals[id].clipart.animate.become(pic)
+                for id, pic in zip(TRAITOR_IDS, traitor_pics)
             ],
-            *[
-                FadeOut(letters[i])
-                for i in range(len(game.generals))
-                if i not in TRAITOR_IDS
-            ],
-            # *[game.generals[i].animate.change_opinion("") for i in range(len(game.generals))],
         )
         self.wait()
-
         self.play(
-            *[FadeOut(game.generals[i].clipart) for i in range(len(game.generals))],
-            *[FadeIn(game.generals[i].icon) for i in range(len(game.generals))],
+            *[
+                game.generals[id]
+                .clipart.animate.scale(1 / 1.5)
+                .shift(-2 * game.circle_position(id))
+                for id in TRAITOR_IDS
+            ],
         )
         self.wait()
 
