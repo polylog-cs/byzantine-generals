@@ -166,7 +166,7 @@ class SendMessage(Animation):
         alpha = rate_functions.ease_in_out_sine(alpha)
         scale = rate_functions.there_and_back_with_pause(alpha)
 
-        self.mobject.scale_to_fit_width(0.01 + scale)
+        self.mobject.scale_to_fit_width(0.01 + scale * 0.8)
         self.mobject.move_to(self.start + alpha * (self.end - self.start))
 
         if alpha == 1.0:

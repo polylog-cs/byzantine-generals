@@ -149,6 +149,12 @@ class ChatWindow(VGroup):
         util_general.MAGENTA,
         util_general.BLUE,
         util_general.CYAN,
+        # Just repeat.
+        util_general.ORANGE,
+        util_general.GREEN,
+        util_general.MAGENTA,
+        util_general.BLUE,
+        util_general.CYAN,
     ]
     SENDER_COLORS = {
         f"General #{i + 1}": color for i, color in enumerate(SENDER_COLORS_ORDER)

@@ -37,7 +37,8 @@ class Message(Group):
         )
         self.add(self.icon)
         if clipart:
-            self.clipart = ImageMobject("img/envelope.png").scale(0.2)
+            # Note that the scale gets overwritten in SendMessage
+            self.clipart = ImageMobject("img/envelope_2.png").scale(0.2)
             self.add(self.clipart)
 
 
