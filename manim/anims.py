@@ -23,7 +23,6 @@ util_general.disable_rich_logging()
 
 # Vasek's constants for the scenes
 SAMPLE_OPINIONS = ["Y", "N", "Y", "N", "Y", "N", "N", "Y", "N", "Y", "N", "Y"]
-GAME_SHIFT = 2 * LEFT
 TRAITOR_IDS = [2, 9]
 
 SAMPLE_OPINIONS2 = ["Y", "N", "Y", "N", "Y", "N", "N", "Y", "Y", "Y", "N", "Y"]
@@ -47,7 +46,10 @@ explanation_texts = [
     r"\raggedright \textbf{Input}: YES/NO for every honest general",
     r"\raggedright \textbf{Output}: YES/NO for every honest general",
     r"\raggedright \textbf{Task}: all honest generals output \\ the same answer",
-    r"\raggedright \textbf{Condition}: if all generals agreed \\ at the beginning, nobody changes opinion",
+    (
+        r"\raggedright \textbf{Condition}: if all generals already started \\"
+        r" with the same opinion, they must stick to it"
+    ),
 ]
 Path("./media/Tex").mkdir(parents=True, exist_ok=True)
 explanations = (
@@ -162,27 +164,23 @@ class Setup1(Scene):
 
             # all generals at once move a bit towards the city, then back
             self.play(
-                AnimationGroup(
-                    *[
-                        game.generals[i].clipart.animate.shift(
-                            movement * game.circle_position(i)
-                        )
-                        for i in range(len(game.generals))
-                    ],
-                )
+                *[
+                    game.generals[i].clipart.animate.shift(
+                        movement * game.circle_position(i)
+                    )
+                    for i in range(len(game.generals))
+                ],
             )
             if not attack:
                 self.wait(1)
 
             self.play(
-                AnimationGroup(
-                    *[
-                        game.generals[i].clipart.animate.shift(
-                            -movement * game.circle_position(i)
-                        )
-                        for i in range(len(game.generals))
-                    ],
-                )
+                *[
+                    game.generals[i].clipart.animate.shift(
+                        -movement * game.circle_position(i)
+                    )
+                    for i in range(len(game.generals))
+                ],
             )
             self.wait()
 
@@ -249,22 +247,30 @@ class Setup1(Scene):
         )
         self.wait()
 
-        # [animace jak se Y/N změní na samá Y a pak zpět]
-
-        self.play(
-            LaggedStart(
-                *[b.animate.become(yb) for b, yb in zip(bubbles, no_bubbles)],
-                lag_ratio=0.1,
+        # Turn everybody's opinion into "N" and show they decided not to attack.
+        anims = []
+        for i in range(len(game.generals)):
+            delta = 0.5 * game.circle_position(i)
+            anims.append(
+                AnimationGroup(
+                    bubbles[i].animate.become(no_bubbles[i]).shift(delta),
+                    game.generals[i].clipart.animate.shift(delta),
+                )
             )
-        )
+        self.play(LaggedStart(*anims))
         self.wait()
 
-        self.play(
-            LaggedStart(
-                *[b.animate.become(ob) for b, ob in zip(bubbles, orig_bubbles)],
-                lag_ratio=0.1,
+        anims = []
+        for i in range(len(game.generals)):
+            anims.append(
+                AnimationGroup(
+                    bubbles[i].animate.become(orig_bubbles[i]),
+                    game.generals[i].clipart.animate.shift(
+                        -0.5 * game.circle_position(i)
+                    ),
+                )
             )
-        )
+        self.play(LaggedStart(*anims))
         self.wait()
 
         # There are two issues that are standing in their way:
@@ -333,23 +339,16 @@ class Setup2(Scene):
         game = GameState(
             [
                 (
-                    Player(with_clipart=True)
+                    Player(with_clipart=False, opinion="-")
                     if i not in TRAITOR_IDS
-                    else Traitor(with_clipart=True)
+                    else Traitor(with_clipart=False)
                 )
                 for i in range(len(SAMPLE_OPINIONS))
             ]
         )
-        game.shift(GAME_SHIFT)
         self.add(game)
-        self.play(
-            *[FadeOut(game.generals[i].clipart) for i in range(len(game.generals))],
-        )
-        for i in range(len(game.generals)):
-            game.generals[i].remove(game.generals[i].clipart)
-
         self.wait()
-        self.play(game.animate.shift(1.5 * LEFT))
+        self.play(game.animate.shift(4 * LEFT))
         self.wait()
         # fade out generals' icons
 
@@ -364,7 +363,7 @@ class Setup2(Scene):
                         for i in range(len(game.generals))
                         if i not in TRAITOR_IDS
                     ],
-                    lag_ratio=0.3,
+                    lag_ratio=0.1,
                 ),
                 FadeIn(explanations[0]),
             )
@@ -478,15 +477,9 @@ class Setup2(Scene):
         )
         self.wait()
 
-        # crosses = [Text("×", color=RED, font_size=80).move_to(game.generals[i].opinion_text) for i in range(len(game.generals)) if i not in TRAITOR_IDS]
-        # self.play(
-        #     *[FadeIn(crosses[i]) for i in range(len(crosses))],
-        # )
-        # self.wait()
-
         # then, an envelope appears in the middle and then gets crossed
         envelope = (
-            ImageMobject("img/envelope.png").scale(0.3).move_to(game.get_center())
+            ImageMobject("img/envelope_2.png").scale(0.3).move_to(game.get_center())
         )
         cross_envelope = Text("×", color=RED, font_size=80).scale(2).move_to(envelope)
         self.play(FadeIn(envelope))
@@ -496,11 +489,13 @@ class Setup2(Scene):
 
         # every general now outputs the same answer
         self.play(
-            *[
-                game.generals[i].animate.change_opinion("Y")
-                for i in range(len(game.generals))
-                if i not in TRAITOR_IDS
-            ],
+            LaggedStart(
+                *[
+                    game.generals[i].animate.change_opinion("Y")
+                    for i in range(len(game.generals))
+                    if i not in TRAITOR_IDS
+                ]
+            )
         )
         # fade out the envelope and the crosses
         self.play(
@@ -545,9 +540,7 @@ class Setup2(Scene):
                 )
 
         # add the third explanation text
-        self.play(
-            FadeIn(explanations[3]),
-        )
+        self.play(FadeIn(explanations[3]))
         self.wait()
 
         # revert back the opinions of generals
@@ -614,12 +607,6 @@ class Setup2(Scene):
 
         self.play(*[FadeOut(m) for m in self.mobjects])
         self.wait()
-
-        # two red rectangles appear
-        rec1 = Rectangle(height=7, width=6, color=RED)
-        rec2 = rec1.copy()
-        _recs = Group(rec1, rec2).arrange(RIGHT)
-        self.play(Create(rec1), Wait(), Create(rec2), Wait())
 
 
 class Solution1(Scene):

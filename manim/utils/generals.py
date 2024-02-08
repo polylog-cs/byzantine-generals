@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 
 from manim import *
 
-from .util_general import BASE00, SendMessage
+from .util_general import BASE00, MAGENTA, SendMessage
 
 GENERAL_RADIUS = 0.5
 
@@ -388,7 +388,7 @@ class Player(General):
             "Y": GREEN,
             "N": RED,
             "-": GRAY,
-        }.get(self.opinion, PINK)
+        }.get(self.opinion, MAGENTA)
 
     def change_opinion(self, opinion: str):
         self.opinion = opinion
@@ -402,7 +402,7 @@ class Player(General):
 
 class Traitor(General):
     def __init__(self, with_clipart: bool = False):
-        super().__init__(icon_color=PINK, fill_icon=True, with_clipart=with_clipart)
+        super().__init__(icon_color=MAGENTA, fill_icon=True, with_clipart=with_clipart)
         self.is_traitor = True
 
     def change_opinion(self, opinion: str):
