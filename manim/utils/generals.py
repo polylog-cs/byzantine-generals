@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 
 from manim import *
 
-from .util_general import BASE00, MAGENTA, SendMessage
+from .util_general import *
 
 GENERAL_RADIUS = 0.5
 
@@ -125,19 +125,20 @@ class MessageBuffer(Group):
 class CodeWithStepping(Code):
     CODE = """for leader_id in [1, 2, 3]:
   send my opinion to everybody
-  if I am the leader:  # Algorithm 1
+  if I am the leader:  # Leader-based algorithm
     my opinion ← majority opinion
     broadcast my opinion
-  count YES and NO messages # Algorithm 2
-  if YES >> NO or NO >> YES:
-    my opinion ← majority opinion
+  count YES and NO messages  # Distributed algorithm
+  if #YES >= 10 or #NO >= 10:
+    my opinion ← local opinion
   else:
     my opinion ← leader opinion
 """
 
-    def __init__(self, **kwargs):
+    # if YES >> NO or NO >> YES:
+    def __init__(self, code_text=CODE, **kwargs):
         super().__init__(
-            code=self.CODE,
+            code=code_text,
             language="python",
             # Would love to set this to False, but then highlighting lines breaks.
             insert_line_no=True,
@@ -310,10 +311,236 @@ class General(Group):
             )
         return new_opinion
 
-    def update_opinion_to_supermajority_or_leader(self, scene: Scene) -> Message:
+    def update_opinion_to_supermajority_or_leader(
+        self, scene: Scene, example=False
+    ) -> Message:
         """Returns a Message with the new opinion."""
         thinking_buffer = self.thinking_buffer
         scene.play(*thinking_buffer.sort_messages())
+
+        if example == True:
+            unit = thinking_buffer.messages[0].get_width()
+            scene.play(thinking_buffer.messages[-1].animate.shift(UP * 2 * unit))
+            txt_scale = 0.2
+            # circumscribe the messages with thin line
+            scene.play(Circumscribe(Group(*thinking_buffer.messages[:-1]), color=RED))
+            scene.wait()
+            sign = (
+                Tex(r"$\ge$", color=BLACK)
+                .scale(0.8)
+                .move_to(thinking_buffer.get_center())
+                .shift(UP * unit)
+            )
+            signg = Tex(r"$\gg$", color=BLACK).scale(0.8).move_to(sign)
+            signl = Tex(r"$\ll$", color=BLACK).scale(0.8).move_to(sign)
+            signs = Tex(r"$\approx$", color=BLACK).scale(0.8).move_to(sign)
+            scene.play(FadeIn(sign))
+            scene.wait()
+            fake_circles = [circle.copy() for circle in thinking_buffer.messages]
+            local_opinion_tex = Tex("Local opinion: ", color=TEXT_COLOR).scale(
+                txt_scale
+            )
+            local_opinion_circle = Circle(
+                radius=1, color=GREEN, fill_color=GREEN, fill_opacity=1
+            ).scale_to_fit_width(thinking_buffer.messages[-1].get_width())
+            local_opinion = Group(local_opinion_tex, local_opinion_circle)
+            leader_opinion_tex = Tex("Leader opinion: ", color=TEXT_COLOR).scale(
+                txt_scale
+            )
+            leader_opinion_circle = fake_circles[3].copy()
+            leader_opinion = Group(leader_opinion_tex, leader_opinion_circle)
+            opinions = (
+                Group(*local_opinion, *leader_opinion)
+                .arrange_in_grid(rows=2, buff=0.05, cell_alignment=LEFT)
+                .next_to(Group(*thinking_buffer.messages), DOWN, buff=0.1)
+                .shift(1.5 * unit * UP + 1 * unit * RIGHT)
+            )
+
+            scene.play(Write(local_opinion_tex))
+            scene.play(
+                *[
+                    circle.animate.move_to(local_opinion_circle)
+                    for circle in fake_circles
+                    if circle.get_center()[0] < sign.get_center()[0]
+                ]
+            )
+            scene.wait()
+
+            arrow1 = (
+                ImageMobject("img/arrow.png")
+                .scale_to_fit_height(unit)
+                .next_to(thinking_buffer.messages[0], direction=LEFT, buff=0)
+            )
+            arrow2 = arrow1.copy().next_to(
+                thinking_buffer.messages[2], direction=LEFT, buff=0
+            )
+            scene.play(FadeIn(arrow1), FadeIn(arrow2))
+            scene.wait()
+            scene.play(FadeOut(arrow1), FadeOut(arrow2))
+            scene.wait()
+
+            scene.play(thinking_buffer.messages[-1].animate.scale(1.5), run_time=0.5)
+            scene.play(
+                thinking_buffer.messages[-1].animate.scale(1 / 1.5), run_time=0.5
+            )
+            scene.wait()
+            scene.play(Write(leader_opinion_tex))
+            pos = leader_opinion_circle.get_center()
+            leader_opinion_circle.move_to(fake_circles[-1])
+            scene.play(leader_opinion_circle.animate.move_to(pos))
+            scene.wait()
+
+            scene.play(local_opinion_circle.animate.scale(1.5), run_time=0.5)
+            scene.play(local_opinion_circle.animate.scale(1 / 1.5), run_time=0.5)
+            scene.wait()
+            scene.play(leader_opinion_circle.animate.scale(1.5), run_time=0.5)
+            scene.play(leader_opinion_circle.animate.scale(1 / 1.5), run_time=0.5)
+            scene.wait()
+
+            code_text = """if ??????:
+    my opinion ← local opinion
+else:
+    my opinion ← leader opinion"""
+            code_text2 = """if YES >> NO or NO >> YES:
+    my opinion ← local opinion
+else:
+    my opinion ← leader opinion"""
+            code_text3 = """if YES >= 10 or NO >= 10:
+    my opinion ← local opinion
+else:
+    my opinion ← leader opinion"""
+            code = (
+                CodeWithStepping(code_text=code_text)
+                .scale(0.3)
+                .next_to(thinking_buffer, RIGHT, buff=0.5)
+            )
+
+            scene.play(
+                scene.camera.auto_zoom(
+                    Group(*self.thinking_buffer.messages, code), margin=0.7
+                ),
+                FadeIn(code),
+                FadeOut(opinions),
+                FadeOut(*fake_circles),
+            )
+            scene.wait()
+
+            new_circles = [
+                circle.icon.copy().move_to(circle)
+                for circle in thinking_buffer.messages[:-1]
+            ]
+            scene.add(*new_circles)
+            scene.remove(*thinking_buffer.messages[:-1])
+
+            # first some red circles go to the left and become green
+            r = new_circles[1].get_center() - new_circles[0].get_center()
+            d = new_circles[2].get_center() - new_circles[0].get_center()
+            new_pos = {}
+            new_pos[6] = new_circles[0].get_center() + r + 3 * d
+            new_pos[8] = new_circles[0].get_center() + 0 * r + 4 * d
+            new_pos[9] = new_circles[0].get_center() + r + 4 * d
+            for i in range(len(new_circles)):
+                new_circles[i].save_state()
+
+            anims = []
+            for i in new_pos.keys():
+                anims.append(
+                    AnimationGroup(
+                        new_circles[i]
+                        .animate.set_fill(GREEN)
+                        .set_color(GREEN)
+                        .move_to(new_pos[i])
+                    )
+                )
+            scene.play(
+                *anims,
+                sign.animate.become(signg),
+            )
+            scene.wait()
+
+            new_pos = {}
+            new_pos[11] = new_circles[5].get_center() + 0 * r + 2 * d
+            new_pos[7] = new_circles[5].get_center() + 0 * r + 3 * d
+            new_pos[10] = new_circles[5].get_center() + 1 * r + 3 * d
+            anims = []
+            for i in new_pos.keys():
+                anims.append(
+                    AnimationGroup(
+                        new_circles[i]
+                        .animate.set_fill(RED)
+                        .set_color(RED)
+                        .move_to(new_pos[i])
+                    )
+                )
+            scene.play(
+                *[
+                    c.animate.restore()
+                    for c in [new_circles[6], new_circles[8], new_circles[9]]
+                ],
+                *anims,
+                sign.animate.become(signl),
+                new_circles[0]
+                .animate.set_fill(RED)
+                .move_to(new_circles[5].get_center() + 0 * r + 4 * d),
+                new_circles[2]
+                .animate.set_fill(RED)
+                .move_to(new_circles[5].get_center() + r + 4 * d),
+                new_circles[4].animate.move_to(
+                    new_circles[0].get_center() + 0 * r + 0 * d
+                ),
+            )
+            scene.wait()
+
+            new_circles[0].save_state()
+            new_circles[2].save_state()
+            scene.play(
+                new_circles[0]
+                .animate.set_fill(GREEN)
+                .move_to(new_circles[4].get_center() + 0 * r + 1 * d),
+                new_circles[2]
+                .animate.set_fill(GREEN)
+                .move_to(new_circles[4].get_center() + r + 1 * d),
+            )
+            scene.wait()
+            scene.play(
+                new_circles[0].animate.restore(),
+                new_circles[2].animate.restore(),
+            )
+            scene.wait()
+
+            scene.play(
+                new_circles[0]
+                .animate.set_fill(GREEN)
+                .move_to(new_circles[4].get_center() + 0 * r + 1 * d),
+                new_circles[2]
+                .animate.set_fill(GREEN)
+                .move_to(new_circles[4].get_center() + r + 1 * d),
+                new_circles[10]
+                .animate.set_fill(GREEN)
+                .set_color(GREEN)
+                .move_to(new_circles[4].get_center() + 0 * r + 2 * d),
+                new_circles[7]
+                .animate.set_fill(GREEN)
+                .set_color(GREEN)
+                .move_to(new_circles[4].get_center() + r + 2 * d),
+                sign.animate.become(signs),
+            )
+            scene.wait()
+
+            scene.play(thinking_buffer.messages[-1].animate.scale(1.5), run_time=0.5)
+            scene.play(
+                thinking_buffer.messages[-1].animate.scale(1 / 1.5), run_time=0.5
+            )
+            scene.wait()
+
+            code2 = (
+                CodeWithStepping(code_text=code_text3)
+                .scale_to_fit_width(code.get_width())
+                .move_to(code)
+            )
+            scene.play(code.animate.become(code2))
+            return
+
         msgs = thinking_buffer.messages
 
         leader_msg = list(filter(lambda msg: isinstance(msg, LeaderMessage), msgs))
@@ -395,6 +622,8 @@ class Player(General):
         color = self.get_color()
 
         new_opinion_text = Tex(opinion, color=color)
+        if opinion == "-":
+            new_opinion_text.scale(1.0 / 100)
         new_opinion_text.move_to(self.icon)
         self.opinion_text.become(new_opinion_text)
         self.icon.set_stroke(color=color, opacity=1)
@@ -426,7 +655,7 @@ class CyclicOpinionTraitor(Traitor):
 
 
 class GameState(Group):
-    def __init__(self, generals: List[General]):
+    def __init__(self, generals: List[General], shft=None):
         super().__init__()
         self.generals = generals
         # Distribute generals in a circle
@@ -446,6 +675,8 @@ class GameState(Group):
             thinking_buffer.shift(
                 self.circle_position(i) * GENERAL_THINKING_BUFFER_RADIUS
             )
+            if shft is not None and i in shft:
+                thinking_buffer.shift(shft[i])
             g.add_thinking_buffer(thinking_buffer)
 
     # TODO pls check
@@ -542,6 +773,7 @@ class GameState(Group):
                 # Make the message border black if the sender is a traitor
                 # to indicate that the message is not trustworthy.
                 message.icon.stroke_color = BLACK
+                pass
 
             if circular_send:
                 # Before sending, messages are aligned around the sender's icon,
@@ -639,6 +871,20 @@ class GameState(Group):
         )
         return msg_objects, anims, to_remove
 
+    def send_opinions_from(self, general_id: int, send_to_self: bool = False):
+        messages = []
+        for i in range(len(self.generals)):
+            if send_to_self or i != general_id:
+                messages.append(
+                    MessageToSend(
+                        general_id, i, Message(self.generals[general_id].opinion)
+                    )
+                )
+        msg_objects, anims, to_remove = self.send_messages(
+            messages, circular_receive=True
+        )
+        return msg_objects, anims, to_remove
+
     def update_general_opinions(
         self, scene: Scene, general_ids: List[int], opinions: List[Message]
     ):
@@ -668,6 +914,7 @@ class GameState(Group):
         leader_id: int,
         send_to_self: bool = True,
         remove_leader_when_done: bool = True,
+        add_background_at_the_end: bool = True,
     ):
         scene.play(self.set_leader(leader_id))
 
@@ -694,18 +941,27 @@ class GameState(Group):
         )
 
         if remove_leader_when_done:
-            scene.play(self.set_leader(scene, None))
+            scene.play(self.set_leader(None))
 
-    def majority_algorithm(self, scene: Scene, send_to_self: bool = True):
+        if add_background_at_the_end:
+            self.set_output(scene)
+
+    def majority_algorithm(self, scene: Scene, send_to_self: bool = True, second=False):
         anims = []
         to_remove = []
 
         for i in range(len(self.generals)):
-            _, cur_anims, cur_to_remove = self.send_opinions_to(i, send_to_self)
+            _, cur_anims, cur_to_remove = self.send_opinions_from(i, send_to_self)
             anims.append(AnimationGroup(*cur_anims))
             to_remove += cur_to_remove
 
-        scene.play(LaggedStart(*anims, lag_ratio=0.2))
+        if second == False:
+            scene.play(LaggedStart(*anims, lag_ratio=0.3))
+        else:
+            n_slow = 5
+            for i in range(n_slow):
+                scene.play(anims[i])
+            scene.play(LaggedStart(*anims[n_slow:], lag_ratio=0.3))
         scene.remove(*to_remove)
         self.move_all_receive_buffers_to_thinking_buffers(scene)
 
@@ -719,6 +975,14 @@ class GameState(Group):
             )
             n_long_played += 1
             self.update_general_opinions(scene, [i], [new_opinion])
+            if not self.generals[i].is_traitor:
+                scene.play(
+                    self.generals[i].icon.animate.set_fill(
+                        color=self.generals[i].icon.get_stroke_color(), opacity=0.2
+                    )
+                )
+
+        # self.set_output(scene)
 
     def move_all_receive_buffers_to_thinking_buffers(self, scene: Scene):
         anims = []
@@ -732,6 +996,7 @@ class GameState(Group):
         leader_ids: List[int],
         code: Optional[CodeWithStepping],
         send_to_self: bool = True,
+        early_stop: bool = False,
     ):
         def highlight_line(line_number: int):
             if code is not None:
@@ -769,6 +1034,9 @@ class GameState(Group):
 
             self.move_all_receive_buffers_to_thinking_buffers(scene)
 
+            if early_stop:
+                return
+
             highlight_line(5)
             for i in range(len(self.generals)):
                 g = self.generals[i]
@@ -776,12 +1044,42 @@ class GameState(Group):
                     new_opinion = g.update_opinion_to_supermajority_or_leader(scene)
                     self.update_general_opinions(scene, [i], [new_opinion])
 
+        self.set_output(scene)
+
     def set_opinions(self, scene: Scene, opinions: List[str]):
         scene.play(
             LaggedStart(
                 *[
                     general.animate.change_opinion(opinion)
                     for general, opinion in zip(self.generals, opinions)
+                ]
+            )
+        )
+
+    def set_output(self, scene: Scene):
+        scene.play(
+            AnimationGroup(
+                *[
+                    # Set both fill color and stroke color to match border color
+                    general.icon.animate.set_fill(
+                        color=general.icon.get_stroke_color(), opacity=0.2
+                    )
+                    for general in self.generals
+                    if not general.is_traitor
+                ]
+            )
+        )
+
+    def set_input(self, scene: Scene):
+        scene.play(
+            AnimationGroup(
+                *[
+                    # Set both fill color and stroke color to match border color
+                    general.icon.animate.set_fill(
+                        color=general.icon.get_stroke_color(), opacity=0.0
+                    )
+                    for general in self.generals
+                    if not general.is_traitor
                 ]
             )
         )
