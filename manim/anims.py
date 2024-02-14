@@ -5,17 +5,7 @@ from manim import *
 
 from utils import util_general
 from utils.chat_window import ChatMessage, ChatWindow
-from utils.generals import (
-    CodeWithStepping,
-    Crown,
-    CyclicOpinionTraitor,
-    GameState,
-    LeaderMessage,
-    Message,
-    MessageToSend,
-    Player,
-    Traitor,
-)
+from utils.generals import *
 from utils.util_cliparts import *
 from utils.util_general import *
 
@@ -259,6 +249,9 @@ class Setup1(Scene):
             no_bubbles.append(make_message(" N", scale=1.1))
             yes_bubbles.append(make_message(" Y", scale=1.1))
             orig_bubbles.append(make_message(opinion, scale=0.9))
+
+        for i in range(len(game.generals)):
+            self.add_sound(random_click_file(), time_offset=0.3 * i + CLICK_OFFSET)
 
         self.play(
             LaggedStart(
@@ -603,16 +596,24 @@ class Setup2(Scene):
         #     ],
         # )
         # self.wait()
-
-        berserk_img = (
-            Group(
-                ImageMobject("img/berserk.png").scale_to_fit_height(1.6),
-                # ImageMobject("img/chad.jpg").scale_to_fit_height(2),
-            )
-            .arrange(RIGHT)
-            .to_corner(DR)
+        code_text_berserk = r"""\# Solution to the Byzantine Generals' Problem
+def solution():
+    print("YES")"""
+        code_berserk = (
+            CodeWithStepping(code_text=code_text_berserk)
+            .scale(0.85)
+            .to_corner(DR, buff=0)
+            .shift(1.5 * UP)
         )
-        self.play(FadeIn(berserk_img))
+        # berserk_img = (
+        #     Group(
+        #         ImageMobject("img/berserk.png").scale_to_fit_height(1.6),
+        #         # ImageMobject("img/chad.jpg").scale_to_fit_height(2),
+        #     )
+        #     .arrange(RIGHT)
+        #     .to_corner(DR)
+        # )
+        self.play(Create(code_berserk))
         self.wait()
 
         self.play(
@@ -630,7 +631,7 @@ class Setup2(Scene):
         game.set_output(self)
         self.wait()
 
-        self.play(FadeOut(berserk_img))
+        self.play(FadeOut(code_berserk))
         self.wait()
 
         # # then, an envelope appears in the middle and then gets crossed
@@ -798,6 +799,7 @@ class Solution1(Scene):
         )
         self.wait()
         # generals get their starting opinion
+
         game.set_opinions(self, SAMPLE_OPINIONS2)
         self.wait()
 
@@ -887,8 +889,8 @@ class Solution2(Scene):
 
         game.majority_algorithm(self)
         self.wait()
-        game.set_input(self)
-        self.wait()
+        # game.set_input(self)
+        # self.wait()
 
         # [“7 YES messages” circubscribe 7 YES tokenů u každého generála]
 
@@ -907,19 +909,21 @@ class Solution2(Scene):
 
         anims = []
         for i in range(len(game.generals)):
-            if i not in TRAITOR_IDS2:
-                anims.append(
-                    game.generals[i].animate.change_opinion(SAMPLE_OPINIONS2[i])
+            # if i not in TRAITOR_IDS2:
+            #     anims.append(
+            #         game.generals[i].animate.change_opinion(SAMPLE_OPINIONS2[i])
+            #     )
+            # else:
+            anims.append(
+                AnimationGroup(
+                    FadeOut(game.generals[i]),
+                    FadeIn(game_with_traitors.generals[i]),
                 )
-            else:
-                anims.append(
-                    AnimationGroup(
-                        FadeOut(game.generals[i]),
-                        FadeIn(game_with_traitors.generals[i]),
-                    )
-                )
+            )
+        for i in range(12):
+            self.add_sound(random_click_file(), time_offset=0.15 * i + CLICK_OFFSET)
 
-        self.play(LaggedStart(*anims))
+        self.play(LaggedStart(*anims), lag_ratio=0.15)
         for i in range(len(game.generals)):
             if i not in TRAITOR_IDS2:
                 self.remove(game.generals[i])
@@ -1155,28 +1159,28 @@ class SolutionCombine2(Scene):
         self.wait()
 
 
-class FullSolutionWithoutCode(Scene):
-    def construct(self):
-        rng = np.random.default_rng(0)
-        game = GameState(
-            [
-                (
-                    CyclicOpinionTraitor(
-                        "".join(rng.choice(["Y", "N"]) for _ in range(12))
-                    )
-                    if i in TRAITOR_IDS4
-                    else Player(opinion="-")
-                )
-                for i in range(len(SAMPLE_OPINIONS4))
-            ]
-        )
-        self.add(game)
-        game.set_opinions(self, SAMPLE_OPINIONS4)
+# class FullSolutionWithoutCode(Scene):
+#     def construct(self):
+#         rng = np.random.default_rng(0)
+#         game = GameState(
+#             [
+#                 (
+#                     CyclicOpinionTraitor(
+#                         "".join(rng.choice(["Y", "N"]) for _ in range(12))
+#                     )
+#                     if i in TRAITOR_IDS4
+#                     else Player(opinion="-")
+#                 )
+#                 for i in range(len(SAMPLE_OPINIONS4))
+#             ]
+#         )
+#         self.add(game)
+#         game.set_opinions(self, SAMPLE_OPINIONS4)
 
-        # Here’s how we can do that concretely. In each of the three phases, we run both algorithms.
-        # So: first, every general sends his opinion to everybody. This allows everybody to compute what we’ll call the majority opinion. Then, the leader of that phase sends his majority opinion back to everybody as the leader’s opinion.
+#         # Here’s how we can do that concretely. In each of the three phases, we run both algorithms.
+#         # So: first, every general sends his opinion to everybody. This allows everybody to compute what we’ll call the majority opinion. Then, the leader of that phase sends his majority opinion back to everybody as the leader’s opinion.
 
-        game.full_algorithm(self, leader_ids=[1], send_to_self=True, code=None)
+#         game.full_algorithm(self, leader_ids=[1], send_to_self=True, code=None)
 
 
 class FullSolutionDecisionRule(MovingCameraScene):

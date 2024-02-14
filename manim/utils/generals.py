@@ -3,6 +3,8 @@ from typing import List, Optional, Tuple
 
 from manim import *
 
+import utils.chat_window
+
 from .util_general import *
 
 GENERAL_RADIUS = 0.5
@@ -21,6 +23,9 @@ MESSAGE_BUFFER_VERTICAL_OFFSET = 0.3
 RECEIVE_BUFFER_CIRCULAR_RADIUS = 0.23
 
 MessageToSend = namedtuple("MsgType", ["sender_id", "receiver_id", "message"])
+WHOOSH_OFFSET = 0.5
+CLICK_OFFSET = 0.3
+EXPLOSION_OFFSET = 0.1
 
 
 class Message(Group):
@@ -185,7 +190,11 @@ class CodeWithStepping(Code):
 
 class General(Group):
     def __init__(
-        self, icon_color: ManimColor, fill_icon: bool, with_clipart: bool = False
+        self,
+        icon_color: ManimColor,
+        fill_icon: bool,
+        with_clipart: bool = False,
+        number: Optional[int] = None,
     ):
         super().__init__()
         self.icon = Circle(
@@ -200,6 +209,21 @@ class General(Group):
 
         if with_clipart:
             self.clipart = ImageMobject("img/icon_general_2.png").scale(0.25)
+            if number != None:
+                if number == -1:
+                    number = 1
+                    self.clipart = ImageMobject("img/icon_traitor_2.png").scale(0.25)
+                txt = (
+                    Tex(
+                        rf"\#{number}",
+                        color=utils.chat_window.SENDER_COLORS_ORDER[number - 1],
+                    )
+                    .scale(0.5)
+                    .align_to(self.clipart, DL)
+                    .shift(0.2 * LEFT)
+                )
+                self.clipart = Group(self.clipart, txt)
+
             self.add(self.clipart)
 
         self.crown = None
@@ -601,9 +625,16 @@ else:
 
 
 class Player(General):
-    def __init__(self, opinion: str = "", with_clipart: bool = False):
+    def __init__(
+        self,
+        opinion: str = "",
+        with_clipart: bool = False,
+        number: Optional[int] = None,
+    ):
         # The icon color gets overwritten by self.change_opinion() below
-        super().__init__(icon_color=GRAY, fill_icon=False, with_clipart=with_clipart)
+        super().__init__(
+            icon_color=GRAY, fill_icon=False, with_clipart=with_clipart, number=number
+        )
         self.opinion = opinion
         self.is_traitor = False
         self.opinion_text = Tex(opinion)
@@ -630,8 +661,10 @@ class Player(General):
 
 
 class Traitor(General):
-    def __init__(self, with_clipart: bool = False):
-        super().__init__(icon_color=MAGENTA, fill_icon=True, with_clipart=with_clipart)
+    def __init__(self, with_clipart: bool = False, number: Optional[int] = None):
+        super().__init__(
+            icon_color=MAGENTA, fill_icon=True, with_clipart=with_clipart, number=number
+        )
         self.is_traitor = True
 
     def change_opinion(self, opinion: str):
@@ -747,6 +780,8 @@ class GameState(Group):
             )
 
         # Note that `Succession` doesn't work here.
+        for i in range(int(len(anims) * lag_ratio * 2 + 1)):
+            scene.add_sound(random_whoosh_file(), time_offset=0.5 * i + 0.3)
         scene.play(LaggedStart(*anims, lag_ratio=lag_ratio))
 
     def send_messages(
@@ -921,6 +956,7 @@ class GameState(Group):
         scene.wait(0.5)
 
         _, anims, to_remove = self.send_opinions_to(leader_id, send_to_self)
+        scene.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
         scene.play(*anims)
 
         scene.wait(0.5)
@@ -932,6 +968,7 @@ class GameState(Group):
             self.update_general_opinions(scene, [leader_id], [new_opinion])
 
         # Whether it's a trator or not, the leader broadcasts the decision
+        scene.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
         msgs = self.broadcast_opinion(scene, [leader_id], msg_class=LeaderMessage)
 
         self.update_general_opinions(
@@ -956,11 +993,20 @@ class GameState(Group):
             to_remove += cur_to_remove
 
         if second == False:
+            for i in range(12):
+                scene.add_sound(
+                    random_whoosh_file(), time_offset=WHOOSH_OFFSET + 0.3 * i
+                )
             scene.play(LaggedStart(*anims, lag_ratio=0.3))
         else:
             n_slow = 5
             for i in range(n_slow):
+                scene.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
                 scene.play(anims[i])
+            for i in range(12 - n_slow):
+                scene.add_sound(
+                    random_whoosh_file(), time_offset=WHOOSH_OFFSET + 0.3 * i
+                )
             scene.play(LaggedStart(*anims[n_slow:], lag_ratio=0.3))
         scene.remove(*to_remove)
         self.move_all_receive_buffers_to_thinking_buffers(scene)
@@ -1013,11 +1059,15 @@ class GameState(Group):
             to_remove = []
 
             for i in range(len(self.generals)):
-                _, cur_anims, cur_to_remove = self.send_opinions_to(i, send_to_self)
+                _, cur_anims, cur_to_remove = self.send_opinions_from(i, send_to_self)
                 anims.append(AnimationGroup(*cur_anims))
                 to_remove += cur_to_remove
 
-            scene.play(LaggedStart(*anims, lag_ratio=0.2))
+            for i in range(12):
+                scene.add_sound(
+                    random_whoosh_file(), time_offset=WHOOSH_OFFSET + 0.3 * i
+                )
+            scene.play(LaggedStart(*anims, lag_ratio=0.3))
             scene.remove(*to_remove)
             self.move_all_receive_buffers_to_thinking_buffers(scene)
 
@@ -1028,6 +1078,7 @@ class GameState(Group):
 
             # Whether it's a trator or not, the leader broadcasts its updated opinion
             highlight_line(4)
+            scene.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
             self.broadcast_opinion(
                 scene, [leader_id], circular_send=True, msg_class=LeaderMessage
             )
@@ -1047,12 +1098,16 @@ class GameState(Group):
         self.set_output(scene)
 
     def set_opinions(self, scene: Scene, opinions: List[str]):
+        for i in range(12):
+            scene.add_sound(random_click_file(), time_offset=0.15 * i + CLICK_OFFSET)
+
         scene.play(
             LaggedStart(
                 *[
                     general.animate.change_opinion(opinion)
                     for general, opinion in zip(self.generals, opinions)
-                ]
+                ],
+                lag_ratio=0.15,
             )
         )
 

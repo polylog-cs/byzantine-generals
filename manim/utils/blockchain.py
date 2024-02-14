@@ -8,8 +8,8 @@ from .generals import Player
 
 
 class BlockchainPlayer(Player):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, with_clipart=True, **kwargs)
+    def __init__(self, number=None, *args, **kwargs):
+        super().__init__(*args, number=number, with_clipart=True, **kwargs)
         self.chat_window: Optional[ChatWindow] = None
 
     def set_chat_window(self, chat_window: ChatWindow):
@@ -21,7 +21,9 @@ class BlockchainPlayer(Player):
 
 
 class BlockchainState(Group):
-    def __init__(self, base_chat: ChatWindow, x_offset=-3, y_offset=-0.5):
+    def __init__(
+        self, base_chat: ChatWindow, x_offset=-3, y_offset=-0.5, with_traitor=False
+    ):
         coef = 2.3
         player_locations = [
             (x * coef + x_offset, y * coef + y_offset)
@@ -31,8 +33,11 @@ class BlockchainState(Group):
         self.players: list[BlockchainPlayer] = []
         animations = []
 
-        for x, y in player_locations:
-            player = BlockchainPlayer().shift(x * RIGHT + y * UP)
+        for it, (x, y) in enumerate(player_locations):
+            number = it + 1
+            if it == 0 and with_traitor:
+                number = -number
+            player = BlockchainPlayer(number=number).shift(x * RIGHT + y * UP)
             self.players.append(player)
             chat_window = base_chat.copy()
             chat_window_scale = 0.3

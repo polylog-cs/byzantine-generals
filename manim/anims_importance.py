@@ -8,7 +8,9 @@ from manim import *
 from utils import util_general
 from utils.blockchain import BlockchainPlayer, BlockchainState
 from utils.chat_window import ChatMessage, ChatWindow
+from utils.generals import *
 from utils.generals import Player, Traitor
+from utils.util_general import *
 
 util_general.disable_rich_logging()
 
@@ -69,13 +71,14 @@ def play_message_animations(scene: Scene, graph: Graph, n: int, fraction_fire: f
 
     animations = []
 
+    fire_is = []
     toggle_every_n = round(1 / fraction_fire) if fraction_fire > 0 else int(1e9)
     for i in range(n):
         toggle_fire = i > 0 and i % toggle_every_n == 0
 
         if toggle_fire:
             create_fire = (
-                rng.random() < 0.5
+                rng.random() < 0.4
                 or i < n // 3  # Always create fires at the beginning
                 or all(f is None for f in fires.values())  # No fires, can't remove
             )
@@ -90,6 +93,7 @@ def play_message_animations(scene: Scene, graph: Graph, n: int, fraction_fire: f
                 )
                 fire_queue.append(v)
                 animations.append(GrowFromCenter(fires[v]))
+                fire_is.append(i)
             else:
                 v = fire_queue.popleft()
                 animations.append(ShrinkToCenter(fires[v]))
@@ -120,6 +124,12 @@ def play_message_animations(scene: Scene, graph: Graph, n: int, fraction_fire: f
             animations.append(animation)
 
     lag_ratio = 0.1
+    for i in range(n // 3):
+        scene.add_sound(
+            random_whoosh_file(), time_offset=i * 0.3 + WHOOSH_OFFSET
+        )  # TODO nevim proc ale zvuky jsou mimo
+    for i in fire_is:
+        scene.add_sound(random_explosion_file(), time_offset=i * 0.1 + EXPLOSION_OFFSET)
 
     # TODO(vv): Just putting everything into a single LaggedStart causes weird behavior.
     #   The fires don't appear and disappear in the right order. I don't know why.
@@ -145,6 +155,67 @@ class NetworkMessages(Scene):
 
         self.wait(1)
 
+        calculation_tex = Tex(
+            r"{{$1$ failure per 10 years \;\;}}{{$\times$\;\; $10^6$ computers \;\;}}{{= \;\;$1$ failure per $5$ minutes}}",
+            color=TEXT_COLOR,
+        ).scale(0.9)
+        calculation_rec = SurroundingRectangle(
+            calculation_tex,
+            color=BACKGROUND_COLOR,
+            fill_color=BACKGROUND_COLOR,
+            fill_opacity=1.0,
+            buff=0.5,
+        )
+        calculation_group = VGroup(calculation_rec, calculation_tex).to_edge(UP)
+
+        self.play(FadeIn(calculation_rec))
+        self.wait()
+        self.play(Write(calculation_tex[0]))
+        self.wait()
+        self.play(Write(calculation_tex[1]))
+        self.wait()
+        self.play(Write(calculation_tex[2]))
+        self.wait()
+
+
+class JeffDean(Scene):
+    def construct(self):
+        quote_text = r"""\raggedright
+        In each cluster's first year, it's typical that 1,000 individual machine failures will occur;
+        thousands of hard drive failures will occur; one power distribution unit will fail, bringing down
+        500 to 1,000 machines for about 6 hours; 20 racks will fail, each time causing 40 to 80 machines
+        to vanish from the network; 5 racks will "go wonky," with half their network packets missing in action;
+        and the cluster will have to be rewired once, affecting 5 percent of the machines at any given moment
+        over a 2-day span. And there's about a 50 percent chance that the cluster will overheat, taking down
+        most of the servers in less than 5 minutes and taking 1 to 2 days to recover.
+        """
+
+        quote = Tex(quote_text, color=text_color).scale(0.8).to_edge(UP)
+        jeff = (
+            Tex("Jeff Dean, Alphabet's (Google) chief scientist", color=text_color)
+            .scale(0.8)
+            .next_to(quote, direction=DOWN, buff=0.5)
+            .align_to(quote, RIGHT)
+            .shift(1 * DOWN)
+        )
+        cit = (
+            Tex(
+                "news.com, 2008 (the reference is old since this info is usually not public)",
+                color=text_color,
+            )
+            .scale(0.4)
+            .next_to(jeff, direction=DOWN, buff=0.25)
+            .align_to(jeff, LEFT)
+        )
+        jeff_pic = (
+            ImageMobject("img/jeff.jpg")
+            .scale_to_fit_height(2)
+            .next_to(jeff, direction=LEFT, buff=0.5)
+            .align_to(jeff, UP)
+            .shift(1 * UP)
+        )
+        self.add(quote, jeff, jeff_pic, cit)
+
 
 class NetworkMessagesWithFires(Scene):
     def construct(self):
@@ -155,6 +226,150 @@ class NetworkMessagesWithFires(Scene):
         play_message_animations(self, graph, n=100, fraction_fire=0.1)
 
         self.wait(1)
+
+
+class GoogleDoc(Scene):
+    def construct(self):
+        util_general.default()
+
+        graph = get_example_graph()
+        self.add(graph)
+
+        # for vertex in graph.vertices:
+        #     index_label = Text(str(vertex), color=PINK).scale(2)
+        #     index_label.move_to(graph.vertices[vertex].get_center())
+        #     graph.add(index_label)
+
+        servers = [2, 8, 1, 10, 5]
+        shifts = {
+            2: 1 * LEFT,
+            8: 1 * LEFT,
+            1: 1 * RIGHT + 0.5 * UP,
+            10: 1 * RIGHT + 0.5 * UP,
+            5: 1 * RIGHT,
+        }
+        datas1 = []
+        datas2 = []
+        for i in servers:
+            sc = 0.7
+            data1 = Tex("Edit A", color=BLUE).scale(sc)
+            data2 = Tex("Edit B", color=RED).scale(sc)
+            if i in [2, 8]:
+                VGroup(data1, data2).arrange_in_grid(
+                    cols=1, cell_alignment=LEFT, buff=0.1
+                ).move_to(graph.vertices[i].get_center() + shifts[i])
+            else:
+                VGroup(data2, data1).arrange_in_grid(
+                    cols=1, cell_alignment=LEFT, buff=0.1
+                ).move_to(graph.vertices[i].get_center() + shifts[i])
+            datas1.append(data1)
+            datas2.append(data2)
+
+        self.play(
+            LaggedStart(
+                *[
+                    FadeIn(SurroundingRectangle(graph.vertices[i], color=RED))
+                    for i in shifts.keys()
+                ],
+                lag_ratio=0.5,
+            )
+        )
+        self.wait()
+
+        figure1 = (
+            ImageMobject("img/icon.png").scale_to_fit_height(1.5).to_corner(DL, buff=1)
+        )
+        figure2 = (
+            ImageMobject("img/icon.png").scale_to_fit_height(1.5).to_corner(DR, buff=1)
+        )
+        col = graph.edges[list(graph.edges.keys())[0]].get_color()
+        print(col)
+        edge1 = Line(figure1.get_center(), graph.vertices[11].get_center(), color=col)
+        edge2 = Line(figure2.get_center(), graph.vertices[19].get_center(), color=col)
+
+        self.play(
+            LaggedStart(
+                FadeIn(Group(figure1, edge1)),
+                FadeIn(Group(figure2, edge2)),
+                lag_ratio=0.5,
+            )
+        )
+        self.wait()
+
+        r = 0.1
+        messages1 = [
+            Circle(radius=r, color=BLUE, fill_opacity=1).move_to(figure1)
+            for _ in range(5)
+        ]
+        messages2 = [
+            Circle(radius=r, color=RED, fill_opacity=1).move_to(figure2)
+            for _ in range(5)
+        ]
+
+        paths1 = [
+            [11, 2],
+            [11, 8],
+            [11, 15, 17, 1],
+            [11, 0, 3, 10],
+            [11, 15, 17, 16, 5],
+        ]
+        paths2 = [
+            [19, 17, 7, 2],
+            [19, 16, 3, 8],
+            [19, 16, 1],
+            [19, 16, 5, 10],
+            [19, 16, 5],
+        ]
+
+        uz1 = set()
+        uz2 = set()
+        for t in range(10):
+            anims = []
+            for messages, paths, uz, datas in zip(
+                [messages1, messages2], [paths1, paths2], [uz1, uz2], [datas1, datas2]
+            ):
+                for i in range(5):
+                    if t < len(paths[i]):
+                        anims.append(
+                            AnimationGroup(
+                                messages[i].animate.move_to(
+                                    graph.vertices[paths[i][t]]
+                                ),
+                                rate_func=linear,
+                            )
+                        )
+                    elif len(paths[i]) == t:
+                        anims.append(FadeOut(messages[i]))
+                        if i not in uz:
+                            anims.append(FadeIn(datas[i]))
+                            uz.add(i)
+            if anims == []:
+                break
+            self.play(*anims)
+            if t < 5:
+                self.add_sound(random_pop_file(), time_offset=-0.2)
+            self.wait(0.5)
+
+        self.play(
+            *[Indicate(d, color=BLUE) for d in datas1[:2]],
+        )
+        self.wait()
+        self.play(
+            *[Indicate(d, color=RED) for d in datas2[2:]],
+        )
+        self.wait()
+
+        play_message_animations(self, graph, n=50, fraction_fire=0.0)
+
+        fire = (
+            ImageMobject("img/fire_apple_emoji.png")
+            .scale(0.8)
+            .move_to(graph.vertices[10])
+        )
+        self.add_sound(random_explosion_file(), time_offset=EXPLOSION_OFFSET)
+        self.play(FadeIn(fire))
+
+        self.wait()
 
 
 class BlockchainGroupChat(Scene):
@@ -208,6 +423,7 @@ class BlockchainGroupChat(Scene):
             for message in messages_to_add:
                 self.play(FadeIn(message))
 
+            self.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
             self.play(
                 state.players[leader_id].chat_window.copy_messages(
                     messages_to_add,
@@ -217,6 +433,73 @@ class BlockchainGroupChat(Scene):
             )
             self.wait(1)
 
+            if leader_id == 0:
+                block1 = Group(*state.players[0].chat_window.messages_group[0:3])
+                block2 = Group(*state.players[0].chat_window.all_messages[3:5])
+                delta = 0.2
+                self.play(
+                    block1.animate.shift(UP * 0 * delta),
+                    block2.animate.shift(DOWN * 2 * delta),
+                )
+                self.wait()
+
+                cr = 0.1
+                rec1 = SurroundingRectangle(
+                    block1, color=util_general.RED, corner_radius=cr
+                )
+                rec2 = SurroundingRectangle(
+                    block2, color=util_general.RED, corner_radius=cr
+                )
+                rec2 = (
+                    RoundedRectangle(
+                        width=rec1.get_width(),
+                        height=rec2.get_height(),
+                        color=util_general.RED,
+                        corner_radius=cr,
+                    )
+                    .move_to(rec2)
+                    .align_to(rec1, LEFT)
+                )
+
+                lines = [
+                    Line(
+                        rec1.get_top(), rec1.get_top() + 1 * UP, color=util_general.RED
+                    ),
+                    Line(rec1.get_bottom(), rec2.get_top(), color=util_general.RED),
+                    Line(
+                        rec2.get_bottom(),
+                        rec2.get_bottom() + 0.5 * DOWN,
+                        color=util_general.RED,
+                    ),
+                ]
+                blockchain_tex = (
+                    Tex("Blockchain", color=util_general.text_color)
+                    .scale(1.5)
+                    .next_to(rec2, direction=DOWN, buff=0.6)
+                )
+
+                self.play(
+                    Create(rec1),
+                    Create(rec2),
+                    *[Create(l) for l in lines],
+                )
+                self.wait()
+                self.play(
+                    Write(blockchain_tex),
+                )
+                self.wait()
+
+                self.play(
+                    FadeOut(rec1),
+                    FadeOut(rec2),
+                    *[FadeOut(l) for l in lines],
+                    block2.animate.shift(-DOWN * 2 * delta),
+                    FadeOut(blockchain_tex),
+                )
+            for i in range(3):
+                self.add_sound(
+                    random_whoosh_file(), time_offset=i * 0.5 + WHOOSH_OFFSET
+                )
             state.send_block_to_other_players(messages_to_add, self)
 
 
@@ -224,8 +507,8 @@ class ElectronicSignature(Scene):
     def construct(self):
         util_general.default()
 
-        player1 = Player(with_clipart=True).shift(LEFT * 4 + UP * 2)
-        player2 = Traitor(with_clipart=True).shift(LEFT * 4 + DOWN * 2)
+        player1 = Player(with_clipart=True, number=1).shift(LEFT * 4 + UP * 2)
+        player2 = Traitor(with_clipart=True, number=2).shift(LEFT * 4 + DOWN * 2)
         self.add(player1, player2)
 
         message = (
@@ -246,6 +529,11 @@ class ElectronicSignature(Scene):
         header_group.submobjects[0].set_fill(util_general.BASE00)
 
         self.play(FadeIn(message))
+        signature_tex = Tex(
+            r"Electronic signature", color=util_general.text_color
+        ).scale(1.5)
+        self.play(Write(signature_tex))
+
         self.play(FadeIn(header_group))
         self.play(header_group.animate.become(header_group_unmoved))
 
@@ -276,7 +564,8 @@ class ElectronicSignature(Scene):
         self.wait()
         self.play(Create(Cross(header_group, color=util_general.RED)))
         self.play(
-            Write(Text("Can't pretend to be somebody else", color=util_general.RED))
+            FadeOut(signature_tex),
+            Write(Text("Can't pretend to be somebody else", color=util_general.RED)),
         )
 
         self.wait()
@@ -304,7 +593,7 @@ class TraitorGroupChat(Scene):
         self.add(chat)
         self.wait(1)
 
-        state = BlockchainState(chat)
+        state = BlockchainState(chat, with_traitor=True)
 
         self.remove(chat)
         self.play(FadeIn(*state.players), *state.creation_animations)
@@ -401,23 +690,25 @@ class OtherLeaderAttacks(Scene):
 
         # Attack 1: Send different messages to different generals
         # TODO(vv): maybe we should make this send all messages, but with different texts?
+        self.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
         self.play(
             *[c.animate.shift(RIGHT * 4) for c in [copies[0][0], copies[0][1]]],
             Create(
                 Text("For general #2", color=util_general.BASE00)
                 .next_to(copies[0][0], direction=UP)
                 .shift(RIGHT * 4)
-                .scale(0.8)
+                .scale(0.6)
             ),
         )
         self.wait()
+        self.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
         self.play(
             *[c.animate.shift(RIGHT * 8) for c in [copies[1][1], copies[1][2]]],
             Create(
                 Text("For general #3", color=util_general.BASE00)
                 .next_to(copies[1][0], direction=UP)
                 .shift(RIGHT * 8)
-                .scale(0.8)
+                .scale(0.6)
             ),
         )
         self.wait()
@@ -482,6 +773,7 @@ class BlockchainForCryptocurrencies(Scene):
             if not allowed:
                 not_allowed_text = Text("Insufficient funds!", color=util_general.RED)
                 not_allowed_text.next_to(message, direction=UP).shift(RIGHT)
+                self.add_sound("audio/polylog_failure.wav", time_offset=0.5)
                 self.play(Create(not_allowed_text))
                 self.wait()
                 self.play(Uncreate(not_allowed_text), FadeOut(message))
