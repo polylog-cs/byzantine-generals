@@ -24,7 +24,7 @@ RECEIVE_BUFFER_CIRCULAR_RADIUS = 0.23
 
 MessageToSend = namedtuple("MsgType", ["sender_id", "receiver_id", "message"])
 WHOOSH_OFFSET = 0.5
-CLICK_OFFSET = 0.3
+CLICK_OFFSET = 0.0
 EXPLOSION_OFFSET = 0.1
 
 
@@ -779,9 +779,10 @@ class GameState(Group):
                 SendMessage(msg, start=sender.get_center(), end=receiver.get_center())
             )
 
+        for i in range(len(anims)):
+            scene.add_sound(random_pop_file(), time_offset=lag_ratio * i)
+
         # Note that `Succession` doesn't work here.
-        for i in range(int(len(anims) * lag_ratio * 2 + 1)):
-            scene.add_sound(random_whoosh_file(), time_offset=0.5 * i + 0.3)
         scene.play(LaggedStart(*anims, lag_ratio=lag_ratio))
 
     def send_messages(

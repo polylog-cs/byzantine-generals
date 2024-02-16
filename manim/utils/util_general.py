@@ -60,10 +60,6 @@ def random_pop_file():
     return f"audio/pop/pop_{random.randint(0, 6)}.wav"
 
 
-def random_pop_file():
-    return f"audio/pop/pop_{random.randint(0, 6)}.wav"
-
-
 def random_explosion_file():
     return f"audio/explosion/e{random.randint(1, 2)}.wav"
 
