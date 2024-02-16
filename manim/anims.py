@@ -251,7 +251,9 @@ class Setup1(Scene):
             orig_bubbles.append(make_message(opinion, scale=0.9))
 
         for i in range(len(game.generals)):
-            self.add_sound(random_click_file(), time_offset=0.3 * i + CLICK_OFFSET)
+            self.add_sound(
+                get_sound_effect("click"), time_offset=0.3 * i + CLICK_OFFSET
+            )
 
         self.play(
             LaggedStart(
@@ -919,7 +921,9 @@ class Solution2(Scene):
                 )
             )
         for i in range(12):
-            self.add_sound(random_click_file(), time_offset=0.05 * i + CLICK_OFFSET)
+            self.add_sound(
+                get_sound_effect("click"), time_offset=0.05 * i + CLICK_OFFSET
+            )
 
         self.play(LaggedStart(*anims, lag_ratio=0.05))
         for i in range(len(game.generals)):

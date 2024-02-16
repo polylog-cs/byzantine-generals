@@ -129,11 +129,13 @@ def play_message_animations(scene: Scene, graph: Graph, n: int, fraction_fire: f
     def flush(group: List[Animation]):
         # Sounds of messages being sent
         for i in range(len(group)):
-            scene.add_sound(random_click_file(), time_offset=i * lag_ratio)
+            scene.add_sound(get_sound_effect("click"), time_offset=i * lag_ratio)
 
         if isinstance(animation, GrowFromCenter):  # A computer is catching fire
             scene.add_sound(
-                random_explosion_file(), time_offset=len(group) * lag_ratio, gain=-6
+                get_sound_effect("explosion"),
+                time_offset=len(group) * lag_ratio,
+                gain=-6,
             )
 
         scene.play(LaggedStart(*group, lag_ratio=lag_ratio))
@@ -357,7 +359,7 @@ class GoogleDoc(Scene):
                 break
             self.play(*anims)
             if t < 5:
-                self.add_sound(random_click_file(), time_offset=-0.2)
+                self.add_sound(get_sound_effect("click"), time_offset=-0.2)
             # self.wait(0.5)
 
         self.play(
@@ -376,7 +378,7 @@ class GoogleDoc(Scene):
             .scale(0.8)
             .move_to(graph.vertices[10])
         )
-        self.add_sound(random_explosion_file(), time_offset=EXPLOSION_OFFSET)
+        self.add_sound(get_sound_effect("explosion"), time_offset=EXPLOSION_OFFSET)
         self.play(FadeIn(fire))
 
         self.wait()
@@ -433,7 +435,7 @@ class BlockchainGroupChat(Scene):
             for message in messages_to_add:
                 self.play(FadeIn(message))
 
-            self.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
+            self.add_sound(get_sound_effect("whoosh"), time_offset=WHOOSH_OFFSET)
             self.play(
                 state.players[leader_id].chat_window.copy_messages(
                     messages_to_add,
@@ -508,7 +510,7 @@ class BlockchainGroupChat(Scene):
                 )
             for i in range(3):
                 self.add_sound(
-                    random_whoosh_file(), time_offset=i * 0.5 + WHOOSH_OFFSET
+                    get_sound_effect("whoosh"), time_offset=i * 0.5 + WHOOSH_OFFSET
                 )
             state.send_block_to_other_players(messages_to_add, self)
 
@@ -700,7 +702,7 @@ class OtherLeaderAttacks(Scene):
 
         # Attack 1: Send different messages to different generals
         # TODO(vv): maybe we should make this send all messages, but with different texts?
-        self.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
+        self.add_sound(get_sound_effect("whoosh"), time_offset=WHOOSH_OFFSET)
         self.play(
             *[c.animate.shift(RIGHT * 4) for c in [copies[0][0], copies[0][1]]],
             Create(
@@ -711,7 +713,7 @@ class OtherLeaderAttacks(Scene):
             ),
         )
         self.wait()
-        self.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
+        self.add_sound(get_sound_effect("whoosh"), time_offset=WHOOSH_OFFSET)
         self.play(
             *[c.animate.shift(RIGHT * 8) for c in [copies[1][1], copies[1][2]]],
             Create(

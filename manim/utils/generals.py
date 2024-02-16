@@ -782,7 +782,7 @@ class GameState(Group):
             )
 
         for i in range(len(anims)):
-            scene.add_sound(random_click_file(), time_offset=lag_ratio * i)
+            scene.add_sound(get_sound_effect("click"), time_offset=lag_ratio * i)
 
         # Note that `Succession` doesn't work here.
         scene.play(LaggedStart(*anims, lag_ratio=lag_ratio))
@@ -1115,7 +1115,7 @@ class GameState(Group):
     def set_opinions(self, scene: Scene, opinions: List[str]):
         lag_ratio = 0.05
         for i in range(len(self.generals)):
-            scene.add_sound(random_click_file(), time_offset=lag_ratio * i)
+            scene.add_sound(get_sound_effect("click"), time_offset=lag_ratio * i)
 
         scene.play(
             LaggedStart(

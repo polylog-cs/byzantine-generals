@@ -50,49 +50,20 @@ def disable_rich_logging():
 
 
 ############### GENERATING SOUNDS
-# self.add_sound(file_name)
 
-SoundEffect = Literal["lovely", "click"]
+SoundEffect = Literal["lovely", "click", "pop", "explosion"]
 
 SOUND_EFFECTS = {
     "lovely": ("audio/lovely/lovely_{}.wav", 7),
     "click": ("audio/click/click_{}.wav", 4),
+    "pop": ("audio/pop/pop_{}.wav", 7),
+    "explosion": ("audio/explosion/explosion_{}.wav", 3),
+    "whoosh": ("audio/whoosh/whoosh_{}.wav", 4),
 }
 
 assert typing.get_args(SoundEffect) == tuple(
     SOUND_EFFECTS.keys()
 ), "Ensure that SoundEffect and SOUND_EFFECTS are in sync"
-
-
-def random_click_file():
-    return f"audio/click/click_{random.randint(0, 3)}.wav"
-
-
-def random_pop_file():
-    return f"audio/pop/pop_{random.randint(0, 6)}.wav"
-
-
-def random_explosion_file():
-    return f"audio/explosion/explosion_{random.randint(0, 2)}.wav"
-
-
-def random_whoosh_file():
-    return f"audio/whoosh/whoosh_{random.randint(0, 3)}.wav"
-
-
-whoosh_gain = -8
-
-
-def random_tick_file():
-    return f"audio/tick/tick_{random.randint(0, 7)}.wav"
-
-
-def random_rubik_file():
-    return f"audio/cube/r{random.randint(1, 20)}.wav"
-
-
-def random_typewriter_file():
-    return f"audio/typewriter/t{random.randint(0, 9)}.wav"
 
 
 def get_sound_effect(
@@ -120,13 +91,6 @@ def get_sound_effect(
         assert rng is None, "`rng` and `variant` cannot both be set"
         assert 0 <= variant < n_variants
         return path.format(variant)
-
-
-def step_sound_file(randomize=True):
-    if randomize:
-        return random_tick_file()
-    else:
-        return "audio/tick/tick_0.wav"
 
 
 ############### ANIMATIONS
