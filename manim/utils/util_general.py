@@ -1,6 +1,7 @@
 import logging
 import random
 import sys
+from typing import Literal, Optional
 
 import manim
 from manim import *
@@ -51,6 +52,17 @@ def disable_rich_logging():
 ############### GENERATING SOUNDS
 # self.add_sound(file_name)
 
+SoundEffect = Literal["lovely", "click"]
+
+SOUND_EFFECTS = {
+    "lovely": ("audio/lovely/lovely_{}.wav", 7),
+    "click": ("audio/click/click_{}.wav", 4),
+}
+
+assert typing.get_args(SoundEffect) == tuple(
+    SOUND_EFFECTS.keys()
+), "Ensure that SoundEffect and SOUND_EFFECTS are in sync"
+
 
 def random_click_file():
     return f"audio/click/click_{random.randint(0, 3)}.wav"
@@ -75,16 +87,39 @@ def random_tick_file():
     return f"audio/tick/tick_{random.randint(0, 7)}.wav"
 
 
-def random_whoops_file():
-    return f"audio/whoops/whoops{random.randint(1, 1)}.mp3"
-
-
 def random_rubik_file():
     return f"audio/cube/r{random.randint(1, 20)}.wav"
 
 
 def random_typewriter_file():
     return f"audio/typewriter/t{random.randint(0, 9)}.wav"
+
+
+def get_sound_effect(
+    name: SoundEffect,
+    rng: Optional[np.random.Generator] = None,
+    variant: Optional[int] = None,
+):
+    """Return a sound effect with the given name.
+
+    Args:
+        name: The name of the sound effect.
+        rng: The random number generator to use for reproducibility.
+        variant: if set, return the exact variant of this sound effect
+            instead of selecting randomly.
+    """
+    assert (
+        name in SOUND_EFFECTS
+    ), f"Unknown sound effect {name}. Valid options: {SOUND_EFFECTS.keys()}"
+    path, n_variants = SOUND_EFFECTS[name]
+
+    if variant is None:
+        rng = rng or np.random.default_rng()
+        return path.format(rng.integers(0, n_variants))
+    else:
+        assert rng is None, "`rng` and `variant` cannot both be set"
+        assert 0 <= variant < n_variants
+        return path.format(variant)
 
 
 def step_sound_file(randomize=True):

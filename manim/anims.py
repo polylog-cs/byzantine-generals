@@ -885,7 +885,7 @@ class Solution2(Scene):
 
         # If there’s a tie, let’s say he outputs YES. In this example, everybody got 7 YES messages and 5 NO messages, so everybody agrees on YES.
 
-        game.majority_algorithm(self)
+        game.local_algorithm(self)
         self.wait()
         # game.set_input(self)
         # self.wait()
@@ -1145,9 +1145,7 @@ class FullSolutionDecisionRule(MovingCameraScene):
             FadeOut(game),
         )
         self.wait()
-        message = game.generals[3].update_opinion_to_supermajority_or_leader(
-            self, example=True
-        )
+        game.generals[3].play_decision_rule_example(self)
         # self.add(message)
         self.wait()
 

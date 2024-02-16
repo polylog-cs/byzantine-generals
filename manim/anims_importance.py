@@ -809,11 +809,6 @@ class BlockchainRandomLeader(Scene):
 
         rng = np.random.default_rng(120)
 
-        leader_order = (
-            list(itertools.chain(*[list(range(4)) for _ in range(2)]))
-            + rng.choice(range(4), size=30).tolist()
-        )
-
         for i in range(30):
             if i < 8:
                 leader_id = i % 4
@@ -821,17 +816,20 @@ class BlockchainRandomLeader(Scene):
                 leader_id = rng.choice(len(state.players))
 
             if leader_id != state.leader_id:
+                self.add_sound(
+                    get_sound_effect("lovely", variant=leader_id), time_offset=0
+                )
                 state.make_leader(leader_id, self, use_black_crown=False)
 
             if i == 5:
-                player = BlockchainPlayer().shift(RIGHT)
+                player = BlockchainPlayer(number=5).shift(RIGHT)
                 self.play(FadeIn(player))
                 state.players.append(player)
 
             if i == 12:
-                fades = [FadeOut(state.players[2]), FadeOut(state.players[3])]
-                state.players.pop(3)
+                fades = [FadeOut(state.players[1]), FadeOut(state.players[2])]
                 state.players.pop(2)
+                state.players.pop(1)
                 self.play(*fades)
 
 

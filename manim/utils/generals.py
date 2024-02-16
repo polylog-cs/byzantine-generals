@@ -3,8 +3,7 @@ from typing import List, Optional, Tuple
 
 from manim import *
 
-import utils.chat_window
-
+from .chat_window import SENDER_COLORS_ORDER
 from .util_general import *
 
 GENERAL_RADIUS = 0.5
@@ -130,11 +129,11 @@ class MessageBuffer(Group):
 class CodeWithStepping(Code):
     CODE = """for leader_id in [1, 2, 3]:
   send my opinion to everybody
-  if I am the leader:  # Leader-based algorithm
+  if I am the leader:  # Leader-based algo
     my opinion ← majority opinion
     broadcast my opinion
-  count YES and NO messages  # Distributed algorithm
-  if #YES >= 10 or #NO >= 10:
+  count YES and NO messages  # Local algo
+  if YES >= 10 or NO >= 10:
     my opinion ← local opinion
   else:
     my opinion ← leader opinion
@@ -216,7 +215,7 @@ class General(Group):
                 txt = (
                     Tex(
                         rf"\#{number}",
-                        color=utils.chat_window.SENDER_COLORS_ORDER[number - 1],
+                        color=SENDER_COLORS_ORDER[number - 1],
                     )
                     .scale(0.5)
                     .align_to(self.clipart, DL)
@@ -311,16 +310,19 @@ class General(Group):
         win = "Y" if y_cnt >= n_cnt else "N"
 
         if not short_version:
+            scene.add_sound(get_sound_effect("click", variant=1))
             scene.play(*thinking_buffer.sort_messages())
             msgs = thinking_buffer.messages
 
             inequality_symbol = Tex("$\ge$" if win == "Y" else "$<$", color=BLACK)
             inequality_symbol.move_to(thinking_buffer.get_center())
+            scene.add_sound(get_sound_effect("click", variant=3))
             scene.play(FadeIn(inequality_symbol))
 
             new_opinion = Message(win).scale(4)  # Make the new opinion 4x bigger
             new_opinion.move_to(inequality_symbol)
 
+            scene.add_sound(get_sound_effect("click", variant=1))
             scene.play(
                 *[msg.animate.move_to(new_opinion) for msg in msgs],
                 inequality_symbol.animate.become(new_opinion.icon),
@@ -330,240 +332,17 @@ class General(Group):
         else:
             new_opinion = Message(win).scale(4)
             new_opinion.move_to(thinking_buffer.get_center())
+            scene.add_sound(get_sound_effect("click", variant=1))
             scene.play(
                 FadeIn(new_opinion), *[FadeOut(msg) for msg in thinking_buffer.messages]
             )
         return new_opinion
 
-    def update_opinion_to_supermajority_or_leader(
-        self, scene: Scene, example=False
-    ) -> Message:
+    def update_opinion_to_supermajority_or_leader(self, scene: Scene) -> Message:
         """Returns a Message with the new opinion."""
         thinking_buffer = self.thinking_buffer
+        scene.add_sound(get_sound_effect("click", variant=1))
         scene.play(*thinking_buffer.sort_messages())
-
-        if example == True:
-            unit = thinking_buffer.messages[0].get_width()
-            scene.play(thinking_buffer.messages[-1].animate.shift(UP * 2 * unit))
-            txt_scale = 0.2
-            # circumscribe the messages with thin line
-            scene.play(Circumscribe(Group(*thinking_buffer.messages[:-1]), color=RED))
-            scene.wait()
-            sign = (
-                Tex(r"$\ge$", color=BLACK)
-                .scale(0.8)
-                .move_to(thinking_buffer.get_center())
-                .shift(UP * unit)
-            )
-            signg = Tex(r"$\gg$", color=BLACK).scale(0.8).move_to(sign)
-            signl = Tex(r"$\ll$", color=BLACK).scale(0.8).move_to(sign)
-            signs = Tex(r"$\approx$", color=BLACK).scale(0.8).move_to(sign)
-            scene.play(FadeIn(sign))
-            scene.wait()
-            fake_circles = [circle.copy() for circle in thinking_buffer.messages]
-            local_opinion_tex = Tex("Local opinion: ", color=TEXT_COLOR).scale(
-                txt_scale
-            )
-            local_opinion_circle = Circle(
-                radius=1, color=GREEN, fill_color=GREEN, fill_opacity=1
-            ).scale_to_fit_width(thinking_buffer.messages[-1].get_width())
-            local_opinion = Group(local_opinion_tex, local_opinion_circle)
-            leader_opinion_tex = Tex("Leader opinion: ", color=TEXT_COLOR).scale(
-                txt_scale
-            )
-            leader_opinion_circle = fake_circles[3].copy()
-            leader_opinion = Group(leader_opinion_tex, leader_opinion_circle)
-            opinions = (
-                Group(*local_opinion, *leader_opinion)
-                .arrange_in_grid(rows=2, buff=0.05, cell_alignment=LEFT)
-                .next_to(Group(*thinking_buffer.messages), DOWN, buff=0.1)
-                .shift(1.5 * unit * UP + 1 * unit * RIGHT)
-            )
-
-            scene.play(Write(local_opinion_tex))
-            scene.play(
-                *[
-                    circle.animate.move_to(local_opinion_circle)
-                    for circle in fake_circles
-                    if circle.get_center()[0] < sign.get_center()[0]
-                ]
-            )
-            scene.wait()
-
-            arrow1 = (
-                ImageMobject("img/arrow.png")
-                .scale_to_fit_height(unit)
-                .next_to(thinking_buffer.messages[0], direction=LEFT, buff=0)
-            )
-            arrow2 = arrow1.copy().next_to(
-                thinking_buffer.messages[2], direction=LEFT, buff=0
-            )
-            scene.play(FadeIn(arrow1), FadeIn(arrow2))
-            scene.wait()
-            scene.play(FadeOut(arrow1), FadeOut(arrow2))
-            scene.wait()
-
-            scene.play(thinking_buffer.messages[-1].animate.scale(1.5), run_time=0.5)
-            scene.play(
-                thinking_buffer.messages[-1].animate.scale(1 / 1.5), run_time=0.5
-            )
-            scene.wait()
-            scene.play(Write(leader_opinion_tex))
-            pos = leader_opinion_circle.get_center()
-            leader_opinion_circle.move_to(fake_circles[-1])
-            scene.play(leader_opinion_circle.animate.move_to(pos))
-            scene.wait()
-
-            scene.play(local_opinion_circle.animate.scale(1.5), run_time=0.5)
-            scene.play(local_opinion_circle.animate.scale(1 / 1.5), run_time=0.5)
-            scene.wait()
-            scene.play(leader_opinion_circle.animate.scale(1.5), run_time=0.5)
-            scene.play(leader_opinion_circle.animate.scale(1 / 1.5), run_time=0.5)
-            scene.wait()
-
-            code_text = """if ??????:
-    my opinion ← local opinion
-else:
-    my opinion ← leader opinion"""
-            code_text2 = """if YES >> NO or NO >> YES:
-    my opinion ← local opinion
-else:
-    my opinion ← leader opinion"""
-            code_text3 = """if YES >= 10 or NO >= 10:
-    my opinion ← local opinion
-else:
-    my opinion ← leader opinion"""
-            code = (
-                CodeWithStepping(code_text=code_text)
-                .scale(0.3)
-                .next_to(thinking_buffer, RIGHT, buff=0.5)
-            )
-
-            scene.play(
-                scene.camera.auto_zoom(
-                    Group(*self.thinking_buffer.messages, code), margin=0.7
-                ),
-                FadeIn(code),
-                FadeOut(opinions),
-                FadeOut(*fake_circles),
-            )
-            scene.wait()
-
-            new_circles = [
-                circle.icon.copy().move_to(circle)
-                for circle in thinking_buffer.messages[:-1]
-            ]
-            scene.add(*new_circles)
-            scene.remove(*thinking_buffer.messages[:-1])
-
-            # first some red circles go to the left and become green
-            r = new_circles[1].get_center() - new_circles[0].get_center()
-            d = new_circles[2].get_center() - new_circles[0].get_center()
-            new_pos = {}
-            new_pos[6] = new_circles[0].get_center() + r + 3 * d
-            new_pos[8] = new_circles[0].get_center() + 0 * r + 4 * d
-            new_pos[9] = new_circles[0].get_center() + r + 4 * d
-            for i in range(len(new_circles)):
-                new_circles[i].save_state()
-
-            anims = []
-            for i in new_pos.keys():
-                anims.append(
-                    AnimationGroup(
-                        new_circles[i]
-                        .animate.set_fill(GREEN)
-                        .set_color(GREEN)
-                        .move_to(new_pos[i])
-                    )
-                )
-            scene.play(
-                *anims,
-                sign.animate.become(signg),
-            )
-            scene.wait()
-
-            new_pos = {}
-            new_pos[11] = new_circles[5].get_center() + 0 * r + 2 * d
-            new_pos[7] = new_circles[5].get_center() + 0 * r + 3 * d
-            new_pos[10] = new_circles[5].get_center() + 1 * r + 3 * d
-            anims = []
-            for i in new_pos.keys():
-                anims.append(
-                    AnimationGroup(
-                        new_circles[i]
-                        .animate.set_fill(RED)
-                        .set_color(RED)
-                        .move_to(new_pos[i])
-                    )
-                )
-            scene.play(
-                *[
-                    c.animate.restore()
-                    for c in [new_circles[6], new_circles[8], new_circles[9]]
-                ],
-                *anims,
-                sign.animate.become(signl),
-                new_circles[0]
-                .animate.set_fill(RED)
-                .move_to(new_circles[5].get_center() + 0 * r + 4 * d),
-                new_circles[2]
-                .animate.set_fill(RED)
-                .move_to(new_circles[5].get_center() + r + 4 * d),
-                new_circles[4].animate.move_to(
-                    new_circles[0].get_center() + 0 * r + 0 * d
-                ),
-            )
-            scene.wait()
-
-            new_circles[0].save_state()
-            new_circles[2].save_state()
-            scene.play(
-                new_circles[0]
-                .animate.set_fill(GREEN)
-                .move_to(new_circles[4].get_center() + 0 * r + 1 * d),
-                new_circles[2]
-                .animate.set_fill(GREEN)
-                .move_to(new_circles[4].get_center() + r + 1 * d),
-            )
-            scene.wait()
-            scene.play(
-                new_circles[0].animate.restore(),
-                new_circles[2].animate.restore(),
-            )
-            scene.wait()
-
-            scene.play(
-                new_circles[0]
-                .animate.set_fill(GREEN)
-                .move_to(new_circles[4].get_center() + 0 * r + 1 * d),
-                new_circles[2]
-                .animate.set_fill(GREEN)
-                .move_to(new_circles[4].get_center() + r + 1 * d),
-                new_circles[10]
-                .animate.set_fill(GREEN)
-                .set_color(GREEN)
-                .move_to(new_circles[4].get_center() + 0 * r + 2 * d),
-                new_circles[7]
-                .animate.set_fill(GREEN)
-                .set_color(GREEN)
-                .move_to(new_circles[4].get_center() + r + 2 * d),
-                sign.animate.become(signs),
-            )
-            scene.wait()
-
-            scene.play(thinking_buffer.messages[-1].animate.scale(1.5), run_time=0.5)
-            scene.play(
-                thinking_buffer.messages[-1].animate.scale(1 / 1.5), run_time=0.5
-            )
-            scene.wait()
-
-            code2 = (
-                CodeWithStepping(code_text=code_text3)
-                .scale_to_fit_width(code.get_width())
-                .move_to(code)
-            )
-            scene.play(code.animate.become(code2))
-            return
 
         msgs = thinking_buffer.messages
 
@@ -591,6 +370,7 @@ else:
 
         inequality_symbol = Tex(tex, color=BLACK).scale(0.8)
         inequality_symbol.move_to(thinking_buffer.get_center())
+        scene.add_sound(get_sound_effect("click", variant=3))
         scene.play(FadeIn(inequality_symbol))
 
         new_opinion = Message(win).scale(4)  # Make the new opinion 4x bigger
@@ -615,6 +395,7 @@ else:
                 + [FadeOut(msg) for msg in n_msgs]
             )
 
+        scene.add_sound(get_sound_effect("click", variant=1))
         scene.play(
             *anims,
             inequality_symbol.animate.become(new_opinion.icon),
@@ -622,6 +403,222 @@ else:
         self.thinking_buffer.messages = []
         scene.remove(inequality_symbol, *msgs)
         return new_opinion
+
+    def play_decision_rule_example(self, scene: Scene):
+        thinking_buffer = self.thinking_buffer
+        scene.play(*thinking_buffer.sort_messages())
+
+        unit = thinking_buffer.messages[0].get_width()
+        scene.play(thinking_buffer.messages[-1].animate.shift(UP * 2 * unit))
+        txt_scale = 0.2
+        # circumscribe the messages with thin line
+        scene.play(Circumscribe(Group(*thinking_buffer.messages[:-1]), color=RED))
+        scene.wait()
+        sign = (
+            Tex(r"$\ge$", color=BLACK)
+            .scale(0.8)
+            .move_to(thinking_buffer.get_center())
+            .shift(UP * unit)
+        )
+        signg = Tex(r"$\gg$", color=BLACK).scale(0.8).move_to(sign)
+        signl = Tex(r"$\ll$", color=BLACK).scale(0.8).move_to(sign)
+        signs = Tex(r"$\approx$", color=BLACK).scale(0.8).move_to(sign)
+        scene.play(FadeIn(sign))
+        scene.wait()
+        fake_circles = [circle.copy() for circle in thinking_buffer.messages]
+        local_opinion_tex = Tex("Local opinion: ", color=TEXT_COLOR).scale(txt_scale)
+        local_opinion_circle = Circle(
+            radius=1, color=GREEN, fill_color=GREEN, fill_opacity=1
+        ).scale_to_fit_width(thinking_buffer.messages[-1].get_width())
+        local_opinion = Group(local_opinion_tex, local_opinion_circle)
+        leader_opinion_tex = Tex("Leader opinion: ", color=TEXT_COLOR).scale(txt_scale)
+        leader_opinion_circle = fake_circles[3].copy()
+        leader_opinion = Group(leader_opinion_tex, leader_opinion_circle)
+        opinions = (
+            Group(*local_opinion, *leader_opinion)
+            .arrange_in_grid(rows=2, buff=0.05, cell_alignment=LEFT)
+            .next_to(Group(*thinking_buffer.messages), DOWN, buff=0.1)
+            .shift(1.5 * unit * UP + 1 * unit * RIGHT)
+        )
+
+        scene.play(Write(local_opinion_tex))
+        scene.play(
+            *[
+                circle.animate.move_to(local_opinion_circle)
+                for circle in fake_circles
+                if circle.get_center()[0] < sign.get_center()[0]
+            ]
+        )
+        scene.wait()
+
+        arrow1 = (
+            ImageMobject("img/arrow.png")
+            .scale_to_fit_height(unit)
+            .next_to(thinking_buffer.messages[0], direction=LEFT, buff=0)
+        )
+        arrow2 = arrow1.copy().next_to(
+            thinking_buffer.messages[2], direction=LEFT, buff=0
+        )
+        scene.play(FadeIn(arrow1), FadeIn(arrow2))
+        scene.wait()
+        scene.play(FadeOut(arrow1), FadeOut(arrow2))
+        scene.wait()
+
+        scene.play(thinking_buffer.messages[-1].animate.scale(1.5), run_time=0.5)
+        scene.play(thinking_buffer.messages[-1].animate.scale(1 / 1.5), run_time=0.5)
+        scene.wait()
+        scene.play(Write(leader_opinion_tex))
+        pos = leader_opinion_circle.get_center()
+        leader_opinion_circle.move_to(fake_circles[-1])
+        scene.play(leader_opinion_circle.animate.move_to(pos))
+        scene.wait()
+
+        scene.play(local_opinion_circle.animate.scale(1.5), run_time=0.5)
+        scene.play(local_opinion_circle.animate.scale(1 / 1.5), run_time=0.5)
+        scene.wait()
+        scene.play(leader_opinion_circle.animate.scale(1.5), run_time=0.5)
+        scene.play(leader_opinion_circle.animate.scale(1 / 1.5), run_time=0.5)
+        scene.wait()
+
+        code_text = """if ??????:
+    my opinion ← local opinion
+else:
+    my opinion ← leader opinion"""
+        code_text2 = """if YES >> NO or NO >> YES:
+    my opinion ← local opinion
+else:
+    my opinion ← leader opinion"""
+        code_text3 = """if YES >= 10 or NO >= 10:
+    my opinion ← local opinion
+else:
+    my opinion ← leader opinion"""
+        code = (
+            CodeWithStepping(code_text=code_text)
+            .scale(0.3)
+            .next_to(thinking_buffer, RIGHT, buff=0.5)
+        )
+
+        scene.play(
+            scene.camera.auto_zoom(
+                Group(*self.thinking_buffer.messages, code), margin=0.7
+            ),
+            FadeIn(code),
+            FadeOut(opinions),
+            FadeOut(*fake_circles),
+        )
+        scene.wait()
+
+        new_circles = [
+            circle.icon.copy().move_to(circle)
+            for circle in thinking_buffer.messages[:-1]
+        ]
+        scene.add(*new_circles)
+        scene.remove(*thinking_buffer.messages[:-1])
+
+        # first some red circles go to the left and become green
+        r = new_circles[1].get_center() - new_circles[0].get_center()
+        d = new_circles[2].get_center() - new_circles[0].get_center()
+        new_pos = {}
+        new_pos[6] = new_circles[0].get_center() + r + 3 * d
+        new_pos[8] = new_circles[0].get_center() + 0 * r + 4 * d
+        new_pos[9] = new_circles[0].get_center() + r + 4 * d
+        for i in range(len(new_circles)):
+            new_circles[i].save_state()
+
+        anims = []
+        for i in new_pos.keys():
+            anims.append(
+                AnimationGroup(
+                    new_circles[i]
+                    .animate.set_fill(GREEN)
+                    .set_color(GREEN)
+                    .move_to(new_pos[i])
+                )
+            )
+        scene.play(
+            *anims,
+            sign.animate.become(signg),
+        )
+        scene.wait()
+
+        new_pos = {}
+        new_pos[11] = new_circles[5].get_center() + 0 * r + 2 * d
+        new_pos[7] = new_circles[5].get_center() + 0 * r + 3 * d
+        new_pos[10] = new_circles[5].get_center() + 1 * r + 3 * d
+        anims = []
+        for i in new_pos.keys():
+            anims.append(
+                AnimationGroup(
+                    new_circles[i]
+                    .animate.set_fill(RED)
+                    .set_color(RED)
+                    .move_to(new_pos[i])
+                )
+            )
+        scene.play(
+            *[
+                c.animate.restore()
+                for c in [new_circles[6], new_circles[8], new_circles[9]]
+            ],
+            *anims,
+            sign.animate.become(signl),
+            new_circles[0]
+            .animate.set_fill(RED)
+            .move_to(new_circles[5].get_center() + 0 * r + 4 * d),
+            new_circles[2]
+            .animate.set_fill(RED)
+            .move_to(new_circles[5].get_center() + r + 4 * d),
+            new_circles[4].animate.move_to(new_circles[0].get_center() + 0 * r + 0 * d),
+        )
+        scene.wait()
+
+        new_circles[0].save_state()
+        new_circles[2].save_state()
+        scene.play(
+            new_circles[0]
+            .animate.set_fill(GREEN)
+            .move_to(new_circles[4].get_center() + 0 * r + 1 * d),
+            new_circles[2]
+            .animate.set_fill(GREEN)
+            .move_to(new_circles[4].get_center() + r + 1 * d),
+        )
+        scene.wait()
+        scene.play(
+            new_circles[0].animate.restore(),
+            new_circles[2].animate.restore(),
+        )
+        scene.wait()
+
+        scene.play(
+            new_circles[0]
+            .animate.set_fill(GREEN)
+            .move_to(new_circles[4].get_center() + 0 * r + 1 * d),
+            new_circles[2]
+            .animate.set_fill(GREEN)
+            .move_to(new_circles[4].get_center() + r + 1 * d),
+            new_circles[10]
+            .animate.set_fill(GREEN)
+            .set_color(GREEN)
+            .move_to(new_circles[4].get_center() + 0 * r + 2 * d),
+            new_circles[7]
+            .animate.set_fill(GREEN)
+            .set_color(GREEN)
+            .move_to(new_circles[4].get_center() + r + 2 * d),
+            sign.animate.become(signs),
+        )
+        scene.wait()
+
+        scene.play(thinking_buffer.messages[-1].animate.scale(1.5), run_time=0.5)
+        scene.play(thinking_buffer.messages[-1].animate.scale(1 / 1.5), run_time=0.5)
+        scene.wait()
+
+        code2 = (
+            CodeWithStepping(code_text=code_text3)
+            .scale_to_fit_width(code.get_width())
+            .move_to(code)
+        )
+        scene.play(code.animate.become(code2))
+        return
 
 
 class Player(General):
@@ -968,7 +965,7 @@ class GameState(Group):
         scene.wait(0.5)
 
         _, anims, to_remove = self.send_opinions_to(leader_id, send_to_self)
-        scene.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
+        scene.add_sound(get_sound_effect("lovely", variant=0), time_offset=0)
         scene.play(*anims)
 
         scene.wait(0.5)
@@ -977,10 +974,11 @@ class GameState(Group):
         scene.play(*self.generals[leader_id].move_receive_buffer_to_thinking_buffer())
         if not self.generals[leader_id].is_traitor:
             new_opinion = self.generals[leader_id].update_opinion_to_majority(scene)
+            scene.add_sound(get_sound_effect("click", variant=0))
             self.update_general_opinions(scene, [leader_id], [new_opinion])
 
         # Whether it's a trator or not, the leader broadcasts the decision
-        scene.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
+        scene.add_sound(get_sound_effect("lovely", variant=4), time_offset=0)
         msgs = self.broadcast_opinion(scene, [leader_id], msg_class=LeaderMessage)
 
         self.update_general_opinions(
@@ -995,9 +993,12 @@ class GameState(Group):
         if add_background_at_the_end:
             self.set_output(scene)
 
-    def majority_algorithm(self, scene: Scene, send_to_self: bool = True, second=False):
+    def local_algorithm(self, scene: Scene, send_to_self: bool = True, second=False):
         anims = []
         to_remove = []
+
+        # the seed 123 gives a nice melody
+        sound_rng = np.random.default_rng(123)
 
         for i in range(len(self.generals)):
             _, cur_anims, cur_to_remove = self.send_opinions_from(i, send_to_self)
@@ -1007,17 +1008,22 @@ class GameState(Group):
         if second == False:
             for i in range(12):
                 scene.add_sound(
-                    random_whoosh_file(), time_offset=WHOOSH_OFFSET + 0.3 * i
+                    get_sound_effect("lovely", sound_rng),
+                    time_offset=0.3 * i,
                 )
             scene.play(LaggedStart(*anims, lag_ratio=0.3))
         else:
             n_slow = 5
             for i in range(n_slow):
-                scene.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
+                scene.add_sound(
+                    get_sound_effect("lovely", sound_rng),
+                    time_offset=0,
+                )
                 scene.play(anims[i])
             for i in range(12 - n_slow):
                 scene.add_sound(
-                    random_whoosh_file(), time_offset=WHOOSH_OFFSET + 0.3 * i
+                    get_sound_effect("lovely", sound_rng),
+                    time_offset=0.3 * i,
                 )
             scene.play(LaggedStart(*anims[n_slow:], lag_ratio=0.3))
         scene.remove(*to_remove)
@@ -1032,6 +1038,7 @@ class GameState(Group):
                 scene, short_version=n_long_played >= 3
             )
             n_long_played += 1
+            scene.add_sound(get_sound_effect("click", variant=0))
             self.update_general_opinions(scene, [i], [new_opinion], with_highlight=True)
 
     def move_all_receive_buffers_to_thinking_buffers(self, scene: Scene):
@@ -1067,22 +1074,25 @@ class GameState(Group):
                 anims.append(AnimationGroup(*cur_anims))
                 to_remove += cur_to_remove
 
+            rng = np.random.default_rng(123)  # gives a nice melody
+            lag_ratio = 0.3
             for i in range(12):
                 scene.add_sound(
-                    random_whoosh_file(), time_offset=WHOOSH_OFFSET + 0.3 * i
+                    get_sound_effect("lovely", rng), time_offset=lag_ratio * i
                 )
-            scene.play(LaggedStart(*anims, lag_ratio=0.3))
+            scene.play(LaggedStart(*anims, lag_ratio=lag_ratio))
             scene.remove(*to_remove)
             self.move_all_receive_buffers_to_thinking_buffers(scene)
 
             if not self.generals[leader_id].is_traitor:
                 highlight_line(3)
                 new_opinion = self.generals[leader_id].update_opinion_to_majority(scene)
+                scene.add_sound(get_sound_effect("click", variant=0))
                 self.update_general_opinions(scene, [leader_id], [new_opinion])
 
             # Whether it's a trator or not, the leader broadcasts its updated opinion
             highlight_line(4)
-            scene.add_sound(random_whoosh_file(), time_offset=WHOOSH_OFFSET)
+            scene.add_sound(get_sound_effect("lovely", variant=4), time_offset=0)
             self.broadcast_opinion(
                 scene, [leader_id], circular_send=True, msg_class=LeaderMessage
             )
@@ -1097,6 +1107,7 @@ class GameState(Group):
                 g = self.generals[i]
                 if not g.is_traitor and not g.is_leader():
                     new_opinion = g.update_opinion_to_supermajority_or_leader(scene)
+                    scene.add_sound(get_sound_effect("click", variant=0))
                     self.update_general_opinions(scene, [i], [new_opinion])
 
         self.set_output(scene)
