@@ -61,7 +61,7 @@ def random_pop_file():
 
 
 def random_explosion_file():
-    return f"audio/explosion/e{random.randint(1, 2)}.wav"
+    return f"audio/explosion/explosion_{random.randint(0, 2)}.wav"
 
 
 def random_whoosh_file():

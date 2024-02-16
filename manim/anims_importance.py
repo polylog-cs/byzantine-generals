@@ -18,7 +18,7 @@ util_general.disable_rich_logging()
 class ComputerVertex(Group):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.add(SVGMobject("img/server.svg").scale(0.4))
+        self.add(ImageMobject("img/server.png").scale(0.17))
 
 
 def get_example_graph():
@@ -38,6 +38,7 @@ def get_example_graph():
         layout="kamada_kawai",
         vertex_type=ComputerVertex,
         layout_scale=4.5,
+        edge_config={"stroke_color": BASE1},
     )
 
     return graph
@@ -124,12 +125,18 @@ def play_message_animations(scene: Scene, graph: Graph, n: int, fraction_fire: f
             animations.append(animation)
 
     lag_ratio = 0.1
-    for i in range(n // 3):
-        scene.add_sound(
-            random_whoosh_file(), time_offset=i * 0.3 + WHOOSH_OFFSET
-        )  # TODO nevim proc ale zvuky jsou mimo
-    for i in fire_is:
-        scene.add_sound(random_explosion_file(), time_offset=i * 0.1 + EXPLOSION_OFFSET)
+
+    def flush(group: List[Animation]):
+        # Sounds of messages being sent
+        for i in range(len(group)):
+            scene.add_sound(random_click_file(), time_offset=i * lag_ratio)
+
+        if isinstance(animation, GrowFromCenter):  # A computer is catching fire
+            scene.add_sound(
+                random_explosion_file(), time_offset=len(group) * lag_ratio, gain=-6
+            )
+
+        scene.play(LaggedStart(*group, lag_ratio=lag_ratio))
 
     # TODO(vv): Just putting everything into a single LaggedStart causes weird behavior.
     #   The fires don't appear and disappear in the right order. I don't know why.
@@ -137,12 +144,11 @@ def play_message_animations(scene: Scene, graph: Graph, n: int, fraction_fire: f
     for animation in animations:
         group.append(animation)
         if not isinstance(animation, SendNetworkMessage):
-            # Flush the group
-            scene.play(LaggedStart(*group, lag_ratio=lag_ratio))
+            flush(group)
             group = []
 
     if group:
-        scene.play(LaggedStart(*group, lag_ratio=lag_ratio))
+        flush(group)
 
 
 class NetworkMessages(Scene):
