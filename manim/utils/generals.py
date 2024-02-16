@@ -24,7 +24,7 @@ RECEIVE_BUFFER_CIRCULAR_RADIUS = 0.23
 
 MessageToSend = namedtuple("MsgType", ["sender_id", "receiver_id", "message"])
 WHOOSH_OFFSET = 0.5
-CLICK_OFFSET = 0.0
+CLICK_OFFSET = 0.1
 EXPLOSION_OFFSET = 0.1
 
 
@@ -235,7 +235,7 @@ class General(Group):
         return self.crown is not None
 
     def make_leader(
-        self, generals: Optional[list["General"]] = None, use_black_crown: bool = True
+        self, generals: Optional[list["General"]] = None, use_black_crown: bool = False
     ) -> Animation:
         """Pass the crown to this general.
 
@@ -648,7 +648,7 @@ class Player(General):
             "-": GRAY,
         }.get(self.opinion, MAGENTA)
 
-    def change_opinion(self, opinion: str):
+    def change_opinion(self, opinion: str, with_highlight: bool = False):
         self.opinion = opinion
         color = self.get_color()
 
@@ -658,6 +658,11 @@ class Player(General):
         new_opinion_text.move_to(self.icon)
         self.opinion_text.become(new_opinion_text)
         self.icon.set_stroke(color=color, opacity=1)
+        if with_highlight:
+            self.icon.set_fill(color=color, opacity=0.2)
+        else:
+            # Perhaps not necessary
+            self.icon.set_fill(color=color, opacity=0.0)
 
 
 class Traitor(General):
@@ -667,7 +672,7 @@ class Traitor(General):
         )
         self.is_traitor = True
 
-    def change_opinion(self, opinion: str):
+    def change_opinion(self, opinion: str, with_highlight: bool = False):
         pass
 
 
@@ -780,7 +785,7 @@ class GameState(Group):
             )
 
         for i in range(len(anims)):
-            scene.add_sound(random_pop_file(), time_offset=lag_ratio * i)
+            scene.add_sound(random_click_file(), time_offset=lag_ratio * i)
 
         # Note that `Succession` doesn't work here.
         scene.play(LaggedStart(*anims, lag_ratio=lag_ratio))
@@ -922,7 +927,11 @@ class GameState(Group):
         return msg_objects, anims, to_remove
 
     def update_general_opinions(
-        self, scene: Scene, general_ids: List[int], opinions: List[Message]
+        self,
+        scene: Scene,
+        general_ids: List[int],
+        opinions: List[Message],
+        with_highlight: bool = False,
     ):
         anims = []
         new_icons = []
@@ -933,7 +942,9 @@ class GameState(Group):
             new_icons.append(new_icon)
 
             anims.append(
-                self.generals[general_id].animate.change_opinion(opinion.message)
+                self.generals[general_id].animate.change_opinion(
+                    opinion.message, with_highlight=with_highlight
+                )
             )
             anims.append(opinion.icon.animate.become(new_icon))
 
@@ -1021,15 +1032,7 @@ class GameState(Group):
                 scene, short_version=n_long_played >= 3
             )
             n_long_played += 1
-            self.update_general_opinions(scene, [i], [new_opinion])
-            if not self.generals[i].is_traitor:
-                scene.play(
-                    self.generals[i].icon.animate.set_fill(
-                        color=self.generals[i].icon.get_stroke_color(), opacity=0.2
-                    )
-                )
-
-        # self.set_output(scene)
+            self.update_general_opinions(scene, [i], [new_opinion], with_highlight=True)
 
     def move_all_receive_buffers_to_thinking_buffers(self, scene: Scene):
         anims = []
@@ -1099,8 +1102,9 @@ class GameState(Group):
         self.set_output(scene)
 
     def set_opinions(self, scene: Scene, opinions: List[str]):
-        for i in range(12):
-            scene.add_sound(random_click_file(), time_offset=0.15 * i + CLICK_OFFSET)
+        lag_ratio = 0.05
+        for i in range(len(self.generals)):
+            scene.add_sound(random_click_file(), time_offset=lag_ratio * i)
 
         scene.play(
             LaggedStart(
@@ -1108,7 +1112,7 @@ class GameState(Group):
                     general.animate.change_opinion(opinion)
                     for general, opinion in zip(self.generals, opinions)
                 ],
-                lag_ratio=0.15,
+                lag_ratio=lag_ratio,
             )
         )
 

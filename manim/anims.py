@@ -596,7 +596,7 @@ class Setup2(Scene):
         #     ],
         # )
         # self.wait()
-        code_text_berserk = r"""\# Solution to the Byzantine Generals' Problem
+        code_text_berserk = r"""\# Solution to the Byzantine Generals Problem
 def solution():
     print("YES")"""
         code_berserk = (
@@ -921,9 +921,9 @@ class Solution2(Scene):
                 )
             )
         for i in range(12):
-            self.add_sound(random_click_file(), time_offset=0.15 * i + CLICK_OFFSET)
+            self.add_sound(random_click_file(), time_offset=0.05 * i + CLICK_OFFSET)
 
-        self.play(LaggedStart(*anims), lag_ratio=0.15)
+        self.play(LaggedStart(*anims, lag_ratio=0.05))
         for i in range(len(game.generals)):
             if i not in TRAITOR_IDS2:
                 self.remove(game.generals[i])
@@ -993,74 +993,6 @@ class Solution2(Scene):
 
         # game.majority_algorithm(self)
         # self.wait()
-
-
-# class SolutionCombine1(Scene):
-#     def construct(self):
-#         # So let’s now take a step back and see where we stand. We have two approaches to the problem. Both of them ultimately failed, but both of them also work well in some interesting situations.
-
-#         rng = np.random.default_rng(0)
-
-#         sc = 0.7
-#         shft = 3
-#         games = [
-#             GameState(
-#                 [
-#                     (
-#                         CyclicOpinionTraitor(
-#                             "".join(rng.choice(["Y", "N"]) for _ in range(12))
-#                         )
-#                         if i in TRAITOR_IDS
-#                         else Player(opinion=SAMPLE_OPINIONS[i])
-#                     )
-#                     for i in range(len(SAMPLE_OPINIONS))
-#                 ]
-#             )
-#             .scale(sc)
-#             .shift(shft * dir)
-#             for dir in [LEFT, RIGHT]
-#         ]
-#         titles = [
-#             Tex("Algorithm " + str(i + 1), color=TEXT_COLOR)
-#             .scale(0.7)
-#             .next_to(games[i], UP, buff=0.5)
-#             for i in range(2)
-#         ]
-#         comments = [
-#             Tex(str, color=TEXT_COLOR).scale(0.7).next_to(games[i], DOWN, buff=0.5)
-#             for i, str in enumerate(
-#                 [
-#                     "works if the leader is honest",
-#                     "works if the initial opinions are skewed",
-#                 ]
-#             )
-#         ]
-
-#         self.play(
-#             *[FadeIn(games[i]) for i in range(2)],
-#             *[FadeIn(titles[i]) for i in range(2)],
-#         )
-#         self.wait()
-
-#         # The first protocol works if the selected leader happens to be honest.
-
-#         self.play(FadeIn(comments[0]))
-#         self.wait()
-#         games[0].leader_algorithm(self, 0)
-#         self.wait()
-
-#         # The second protocol works if the initial opinions of honest generals are already skewed heavily in favor of one of the opinions.
-#         self.play(FadeIn(comments[1]))
-#         self.wait()
-#         games[1].majority_algorithm(self)
-#         self.wait()
-
-#         # Let’s try to combine the strengths of the two protocols into a new one that always works!
-#         self.play(
-#             *[FadeOut(m) for m in titles + comments],
-#             *[game.animate.scale(1 / sc).move_to(ORIGIN) for game in games],
-#         )
-#         self.wait(3)
 
 
 class SolutionCombine2(Scene):
@@ -1144,6 +1076,7 @@ class SolutionCombine2(Scene):
             for i in range(len(game.generals))
             if i not in TRAITOR_IDS4
         ]
+        self.add_sound("audio/lock.wav")
 
         # For some reason, LaggedStart + FadeIn only fades in the first lock
         # and the others appear instantly. Let's just fade them all in at once.
