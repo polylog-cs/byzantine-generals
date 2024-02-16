@@ -283,20 +283,24 @@ class GoogleDoc(Scene):
         self.wait()
 
         figure1 = (
-            ImageMobject("img/icon.png").scale_to_fit_height(1.5).to_corner(DL, buff=1)
+            ImageMobject("img/person_icon.png")
+            .scale_to_fit_height(1.5)
+            .to_corner(DL, buff=1)
         )
         figure2 = (
-            ImageMobject("img/icon.png").scale_to_fit_height(1.5).to_corner(DR, buff=1)
+            ImageMobject("img/person_icon.png")
+            .scale_to_fit_height(1.5)
+            .to_corner(DR, buff=1)
         )
         col = graph.edges[list(graph.edges.keys())[0]].get_color()
-        print(col)
+
         edge1 = Line(figure1.get_center(), graph.vertices[11].get_center(), color=col)
         edge2 = Line(figure2.get_center(), graph.vertices[19].get_center(), color=col)
 
         self.play(
             LaggedStart(
-                FadeIn(Group(figure1, edge1)),
-                FadeIn(Group(figure2, edge2)),
+                FadeIn(Group(edge1, figure1)),
+                FadeIn(Group(edge2, figure2)),
                 lag_ratio=0.5,
             )
         )
@@ -353,8 +357,8 @@ class GoogleDoc(Scene):
                 break
             self.play(*anims)
             if t < 5:
-                self.add_sound(random_pop_file(), time_offset=-0.2)
-            self.wait(0.5)
+                self.add_sound(random_click_file(), time_offset=-0.2)
+            # self.wait(0.5)
 
         self.play(
             *[Indicate(d, color=BLUE) for d in datas1[:2]],

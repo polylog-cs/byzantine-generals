@@ -862,9 +862,7 @@ class Solution2(Scene):
     def construct(self):
         # So, how can we approach the problem? Well, let’s first see how we could solve it if there were no traitors at all and understand how those approaches fail.
         title = (
-            Tex("2. Distributed algorithm", color=TEXT_COLOR)
-            .scale(title_scale)
-            .to_corner(UL)
+            Tex("2. Local algorithm", color=TEXT_COLOR).scale(title_scale).to_corner(UL)
         )
         # create a game with no traitors
         game = GameState([Player("-") for i in range(len(SAMPLE_OPINIONS2))])
@@ -1070,7 +1068,7 @@ class SolutionCombine2(Scene):
 
         locks = [
             ImageMobject("img/lock.png")
-            .scale_to_fit_width(game.generals[i].icon.get_width() / 1.5)
+            .scale_to_fit_width(game.generals[i].icon.width / 1.5)
             .next_to(game.generals[i].icon, RIGHT, buff=-0.5)
             .shift(0.3 * DOWN)
             for i in range(len(game.generals))
