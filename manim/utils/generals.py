@@ -22,7 +22,7 @@ MESSAGE_BUFFER_VERTICAL_OFFSET = 0.3
 RECEIVE_BUFFER_CIRCULAR_RADIUS = 0.23
 
 MessageToSend = namedtuple("MsgType", ["sender_id", "receiver_id", "message"])
-WHOOSH_OFFSET = 0.5
+WHOOSH_OFFSET = 0.1
 CLICK_OFFSET = 0.1
 EXPLOSION_OFFSET = 0.1
 

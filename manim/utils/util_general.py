@@ -51,7 +51,7 @@ def disable_rich_logging():
 
 ############### GENERATING SOUNDS
 
-SoundEffect = Literal["lovely", "click", "pop", "explosion"]
+SoundEffect = Literal["lovely", "click", "pop", "explosion", "whoosh"]
 
 SOUND_EFFECTS = {
     "lovely": ("audio/lovely/lovely_{}.wav", 7),
