@@ -1054,6 +1054,7 @@ class GameState(Group):
         code: Optional[CodeWithStepping],
         send_to_self: bool = True,
         early_stop: bool = False,
+        stops: bool = False,
     ):
         def highlight_line(line_number: int):
             if code is not None:
@@ -1105,6 +1106,14 @@ class GameState(Group):
             highlight_line(5)
             for i in range(len(self.generals)):
                 g = self.generals[i]
+                if stops == True and leader_id == 1 and (i == 3 or i == 7):
+                    scene.play(
+                        Circumscribe(
+                            self.generals[i].thinking_buffer,
+                            color=RED,
+                        )
+                    )
+                    scene.wait()
                 if not g.is_traitor and not g.is_leader():
                     new_opinion = g.update_opinion_to_supermajority_or_leader(scene)
                     scene.add_sound(get_sound_effect("click", variant=0))

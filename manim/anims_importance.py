@@ -192,7 +192,7 @@ class JeffDean(Scene):
         In each cluster's first year, it's typical that 1,000 individual machine failures will occur;
         thousands of hard drive failures will occur; one power distribution unit will fail, bringing down
         500 to 1,000 machines for about 6 hours; 20 racks will fail, each time causing 40 to 80 machines
-        to vanish from the network; 5 racks will "go wonky," with half their network packets missing in action;
+        to vanish from the network; 5 racks will ``go wonky'', with half their network packets missing in action;
         and the cluster will have to be rewired once, affecting 5 percent of the machines at any given moment
         over a 2-day span. And there's about a 50 percent chance that the cluster will overheat, taking down
         most of the servers in less than 5 minutes and taking 1 to 2 days to recover.
@@ -222,6 +222,7 @@ class JeffDean(Scene):
             .align_to(jeff, UP)
             .shift(1 * UP)
         )
+        Group(jeff, jeff_pic, cit).to_edge(LEFT, buff=1)
         self.add(quote, jeff, jeff_pic, cit)
 
 
@@ -644,6 +645,7 @@ class TraitorGroupChat(Scene):
             failed_text = Text("Failed verification", color=util_general.RED)
             failed_text.next_to(messages_to_add[0], direction=DOWN).shift(LEFT)
 
+            self.add_sound("audio/polylog_failure.wav", time_offset=0.5)
             self.play(
                 Create(failed_text),
                 verifications[0].animate.set_color(util_general.RED),
@@ -809,7 +811,7 @@ class BlockchainRandomLeader(Scene):
         self.play(FadeIn(*state.players), *state.creation_animations)
         self.wait(1)
 
-        rng = np.random.default_rng(120)
+        rng = np.random.default_rng(121)
 
         for i in range(30):
             if i < 8:

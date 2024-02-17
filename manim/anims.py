@@ -814,18 +814,12 @@ class Solution1(Scene):
         game.set_opinions(self, SAMPLE_OPINIONS2)
         self.wait()
 
-        rng = np.random.default_rng(1)
+        rng = np.random.default_rng(3)
 
         # This protocol surely works if there are no traitors, but if we are unlucky and choose a traitor as the leader, he gets a complete control over the output of honest generals, a spectacular failure!
 
         for i in TRAITOR_IDS3:
-            game.change_general(
-                self,
-                i,
-                CyclicOpinionTraitor(
-                    "".join(rng.choice(["Y", "N"]) for _ in range(12))
-                ),
-            )
+            game.change_general(self, i, CyclicOpinionTraitor("YYYYYYYNNNNN"))
 
         game.leader_algorithm(self, 0)
         self.wait()
@@ -1165,9 +1159,11 @@ class FullSolutionWithCode(Scene):
         # in both cases they'll choose YES).
         # Finally, in the third round there should be a varying number of NO opinions
         # sent by the traitors to illustrate that they can behave arbitrarily.
-        players[0] = CyclicOpinionTraitor("YYYNYNYYYNYNYNYNYN")
-        players[2] = CyclicOpinionTraitor("YYNNNNNYYYYYYYYYYY")
-
+        players[0] = CyclicOpinionTraitor("NNNYNYYNYYNYYNYYYYNYYNYYYYNNNYYYNNYYYYYYYY")
+        players[2] = CyclicOpinionTraitor(
+            "YYNYYNYNYYNNYYYNNYYYNYYNNYYNYYNYNYNNNNNNNNYNNYYYY"
+        )
+        #
         game = GameState(players)
 
         code = CodeWithStepping(font_size=24)
@@ -1182,7 +1178,9 @@ class FullSolutionWithCode(Scene):
         game.set_opinions(self, SAMPLE_OPINIONS4)
         self.wait()
 
-        game.full_algorithm(self, leader_ids=[0, 1, 2], send_to_self=True, code=code)
+        game.full_algorithm(
+            self, leader_ids=[0, 1, 2], send_to_self=True, code=code, stops=True
+        )
 
 
 class Thumbnail(Scene):
