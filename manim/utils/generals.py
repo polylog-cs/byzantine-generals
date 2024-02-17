@@ -1013,19 +1013,23 @@ class GameState(Group):
                 )
             scene.play(LaggedStart(*anims, lag_ratio=0.3))
         else:
-            n_slow = 5
+            n_slow = 12
             for i in range(n_slow):
                 scene.add_sound(
                     get_sound_effect("lovely", sound_rng),
                     time_offset=0,
                 )
-                scene.play(anims[i])
-            for i in range(12 - n_slow):
-                scene.add_sound(
-                    get_sound_effect("lovely", sound_rng),
-                    time_offset=0.3 * i,
-                )
-            scene.play(LaggedStart(*anims[n_slow:], lag_ratio=0.3))
+                if i == 8:  # or i == 10:
+                    scene.play(anims[i], run_time=5)
+                else:
+                    scene.play(anims[i])
+
+            # for i in range(12 - n_slow):
+            #     scene.add_sound(
+            #         get_sound_effect("lovely", sound_rng),
+            #         time_offset=0.3 * i,
+            #     )
+            # scene.play(LaggedStart(*anims[n_slow:], lag_ratio=0.3))
         scene.remove(*to_remove)
         self.move_all_receive_buffers_to_thinking_buffers(scene)
 

@@ -17,6 +17,8 @@ TRAITOR_IDS = [2, 9]
 
 SAMPLE_OPINIONS2 = ["Y", "N", "Y", "N", "Y", "N", "N", "Y", "Y", "Y", "N", "Y"]
 TRAITOR_IDS2 = [2, 4]
+SAMPLE_OPINIONS20 = ["Y", "N", "Y", "N", "Y", "N", "N", "Y", "Y", "Y", "N", "Y"]
+TRAITOR_IDS20 = [8, 10]
 
 SAMPLE_OPINIONS_MANY_Y = ["Y", "N", "Y", "Y", "Y", "N", "N", "Y", "Y", "Y", "Y", "Y"]
 
