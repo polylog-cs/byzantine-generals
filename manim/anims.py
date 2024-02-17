@@ -944,7 +944,7 @@ class Solution2(Scene):
 
         # Now the traitors can send 2 YES messages to some generals and 2 NO messages to some other generals.
 
-        game.majority_algorithm(self, second=True)
+        game.local_algorithm(self, second=True)
         self.wait()
 
         # [ukáže se jak traitoři pošlou nejdřív YES tokeny některým, pak NO tokeny zbylým (sobě traitoři nepošlou nic)]
@@ -993,7 +993,7 @@ class Solution2(Scene):
         # In that case, whatever the traitors do, every honest general ends up with at least 7 YES opinions, which is enough to make him output YES. Similarly, the protocol works if at least 7 honest generals start with the NO opinion.
         # [traitoři něco udělají, je pak vidět jak honest generálové skončili s 7 YES/5 NO,  8 YES/4 NO,  9 YES/3 NO, a všichni odpověděli YES]
 
-        # game.majority_algorithm(self)
+        # game.local_algorithm(self)
         # self.wait()
 
 
