@@ -1195,6 +1195,36 @@ class ImportanceSectionTitle(Scene):
         self.wait()
 
 
+class FirstSolutionTitle(Scene):
+    def construct(self):
+        title = Tex(r"First Solution", color=text_color)
+        title.scale(4)
+        self.play(Write(title))
+        self.wait()
+        self.play(Unwrite(title))
+        self.wait()
+
+
+class SecondSolutionTitle(Scene):
+    def construct(self):
+        title = Tex(r"Blockchain-based Solution", color=text_color)
+        title.scale(4)
+        self.play(Write(title))
+        self.wait()
+        self.play(Unwrite(title))
+        self.wait()
+
+
+class WrapupTitle(Scene):
+    def construct(self):
+        title = Tex(r"Wrap-up", color=text_color)
+        title.scale(4)
+        self.play(Write(title))
+        self.wait()
+        self.play(Unwrite(title))
+        self.wait()
+
+
 class Thumbnail(Scene):
     def construct(self):
         self.add(

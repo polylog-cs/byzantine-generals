@@ -662,7 +662,7 @@ class TraitorGroupChat(Scene):
 
 class OtherLeaderAttacks(Scene):
     def construct(self):
-        leader = BlockchainPlayer().scale(1.5)
+        leader = BlockchainPlayer(number=-4).scale(1.5)
         leader.shift(LEFT * 6)
 
         # It's difficult to scale the crown if we don't do this hack with first passing

@@ -209,8 +209,8 @@ class General(Group):
         if with_clipart:
             self.clipart = ImageMobject("img/icon_general_2.png").scale(0.25)
             if number != None:
-                if number == -1:
-                    number = 1
+                if number <= -1:
+                    number = -number
                     self.clipart = ImageMobject("img/icon_traitor_2.png").scale(0.25)
                 txt = (
                     Tex(
