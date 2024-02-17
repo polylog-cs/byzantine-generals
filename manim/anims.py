@@ -1185,6 +1185,16 @@ class FullSolutionWithCode(Scene):
         )
 
 
+class ImportanceSectionTitle(Scene):
+    def construct(self):
+        title = Tex(r"Importance", color=text_color)
+        title.scale(4)
+        self.play(Write(title))
+        self.wait()
+        self.play(Unwrite(title))
+        self.wait()
+
+
 class Thumbnail(Scene):
     def construct(self):
         self.add(
