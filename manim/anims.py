@@ -17,7 +17,7 @@ TRAITOR_IDS = [2, 9]
 
 SAMPLE_OPINIONS2 = ["Y", "N", "Y", "N", "Y", "N", "N", "Y", "Y", "Y", "N", "Y"]
 TRAITOR_IDS2 = [2, 4]
-SAMPLE_OPINIONS20 = ["Y", "N", "Y", "N", "Y", "N", "N", "Y", "Y", "Y", "N", "Y"]
+SAMPLE_OPINIONS20 = ["Y", "N", "N", "N", "Y", "N", "N", "Y", "Y", "Y", "N", "Y"]
 TRAITOR_IDS20 = [8, 10]
 
 SAMPLE_OPINIONS_MANY_Y = ["Y", "N", "Y", "Y", "Y", "N", "N", "Y", "Y", "Y", "Y", "Y"]
@@ -896,8 +896,8 @@ class Solution2(Scene):
             [
                 (
                     CyclicOpinionTraitor("YYYYYYNNNNNN")
-                    if i in TRAITOR_IDS2
-                    else Player(opinion=SAMPLE_OPINIONS2[i])
+                    if i in TRAITOR_IDS20
+                    else Player(opinion=SAMPLE_OPINIONS20[i])
                 )
                 for i in range(len(SAMPLE_OPINIONS2))
             ]
@@ -923,7 +923,7 @@ class Solution2(Scene):
 
         self.play(LaggedStart(*anims, lag_ratio=0.05))
         for i in range(len(game.generals)):
-            if i not in TRAITOR_IDS2:
+            if i not in TRAITOR_IDS20:
                 self.remove(game.generals[i])
                 self.add(game_with_traitors.generals[i])
         self.wait()
@@ -964,7 +964,7 @@ class Solution2(Scene):
         num = 0
         anims = []
         for i in range(len(game.generals)):
-            if i not in TRAITOR_IDS2 and SAMPLE_OPINIONS_MANY_Y[i] == "Y":
+            if i not in TRAITOR_IDS20 and SAMPLE_OPINIONS_MANY_Y[i] == "Y":
                 txt = (
                     Text(str(num + 1), color=TEXT_COLOR)
                     .scale(0.8)
