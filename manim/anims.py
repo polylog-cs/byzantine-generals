@@ -1251,3 +1251,41 @@ class Thumbnail(Scene):
             .next_to(player2, LEFT)
             .shift(UP)
         )
+
+
+class Final(Scene):
+    def construct(self):
+        thanks_text = "Big thanks to everyone who gave us feedback on an early version of this video!"
+        patrons_thanks_text = "Our amazing Patrons:"
+        patrons_text = [
+            "George Chahir",
+            "Adam Dřínek",
+            "Anh Dung Le",
+            "Hugo Madge León",
+            "George Mihaila",
+            "Amit Nambiar",
+            "George Ronides",
+            "sjbtrn",
+            "Tomáš Sláma",
+            "Pepa Tkadlec",
+        ]
+        support_tex = "Thank you for your support!"
+
+        thanks_tex = Tex(thanks_text, color=TEXT_COLOR).scale(0.8).to_edge(UP)
+        patrons_thanks_tex = (
+            Tex(patrons_thanks_text, color=TEXT_COLOR)
+            .scale(0.8)
+            .next_to(thanks_tex, DOWN, buff=1)
+        )
+        patrons_tex = (
+            VGroup(*[Tex(t, color=TEXT_COLOR).scale(0.8) for t in patrons_text])
+            .arrange_in_grid(cell_alignment=LEFT)
+            .next_to(patrons_thanks_tex, DOWN, buff=0.5)
+        )
+        support_tex = (
+            Tex(support_tex, color=TEXT_COLOR)
+            .scale(1.2)
+            .next_to(patrons_tex, DOWN, buff=1)
+        )
+        self.add(patrons_thanks_tex, patrons_tex, support_tex)
+        self.wait(5)
