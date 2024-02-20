@@ -1207,8 +1207,8 @@ class FirstSolutionTitle(Scene):
 
 class SecondSolutionTitle(Scene):
     def construct(self):
-        title = Tex(r"Blockchain-based Solution", color=text_color)
-        title.scale(4)
+        title = Tex(r"Blockchain-based\\Solution", color=text_color)
+        title.scale(3)
         self.play(Write(title))
         self.wait()
         self.play(Unwrite(title))
