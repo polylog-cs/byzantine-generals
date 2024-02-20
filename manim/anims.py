@@ -1258,10 +1258,10 @@ class Final(Scene):
         thanks_text = "Big thanks to everyone who gave us feedback on an early version of this video!"
         patrons_thanks_text = "Our amazing Patrons:"
         patrons_text = [
-            "George Chahir",
+            "The Egyptian Magician",
             "Adam Dřínek",
             "Anh Dung Le",
-            "Hugo Madge León",
+            "Paella Boy",
             "George Mihaila",
             "Amit Nambiar",
             "George Ronides",
