@@ -747,7 +747,7 @@ class GameState(Group):
         Return the position of the ith general in the circle.
         """
         # Shift the index by 1 so that the generals are numbered like clocks
-        ii = (i + 1) % len(self.generals)
+        ii = (i + 1.5) % len(self.generals)
         x = np.sin(ii * 2 * np.pi / len(self.generals))
         y = np.cos(ii * 2 * np.pi / len(self.generals))
         return x * RIGHT + y * UP
@@ -785,7 +785,7 @@ class GameState(Group):
             scene.add_sound(get_sound_effect("click"), time_offset=lag_ratio * i)
 
         # Note that `Succession` doesn't work here.
-        scene.play(LaggedStart(*anims, lag_ratio=lag_ratio))
+        scene.play(LaggedStart(*anims, lag_ratio=lag_ratio), run_time=3)
 
     def send_messages(
         self,
